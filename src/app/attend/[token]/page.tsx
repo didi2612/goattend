@@ -14,10 +14,12 @@ export default async function AttendPage({ params }: { params: Promise<{ token: 
 
   if (!student || !student.active) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
-        <p className="text-center text-slate-600 dark:text-slate-300">
-          This attendance link is invalid or no longer active. Please contact your supervisor.
-        </p>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 text-center shadow-sm">
+          <p className="text-foreground">
+            This attendance link is invalid or no longer active. Please contact your supervisor.
+          </p>
+        </div>
       </div>
     );
   }

@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import { sql } from "@/lib/db";
 import { getVisibleOwnerIds } from "@/lib/access";
 import type { SessionPayload } from "@/lib/session";
@@ -14,8 +13,36 @@ export type Student = {
   last_type: "Clock In" | "Clock Out" | null;
 };
 
-export function generateAttendanceToken(): string {
-  return randomBytes(16).toString("base64url");
+function slugify(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // strip accents
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base || "student";
+}
+
+/**
+ * Turns a student's name into a URL-friendly, human-searchable attendance
+ * link (e.g. "John Doe" -> "john-doe"), appending -2/-3/... on collision so
+ * the slug stays globally unique across all students.
+ */
+export async function generateAttendanceSlug(name: string): Promise<string> {
+  const base = slugify(name);
+
+  const existing = (await sql`
+    SELECT attendance_token FROM students WHERE attendance_token = ${base} OR attendance_token LIKE ${base + "-%"}
+  `) as { attendance_token: string }[];
+
+  if (existing.length === 0) return base;
+
+  const taken = new Set(existing.map((r) => r.attendance_token));
+  if (!taken.has(base)) return base;
+
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
 }
 
 const STUDENT_SELECT = `
@@ -45,7 +72,7 @@ export async function listVisibleStudents(session: SessionPayload): Promise<Stud
 }
 
 export async function createStudent(name: string, ownerId: number): Promise<Student> {
-  const token = generateAttendanceToken();
+  const token = await generateAttendanceSlug(name);
   const [student] = (await sql`
     INSERT INTO students (name, owner_id, attendance_token)
     VALUES (${name}, ${ownerId}, ${token})

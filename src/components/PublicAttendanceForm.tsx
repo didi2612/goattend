@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  Camera,
+  RotateCcw,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  LogIn,
+  LogOut,
+} from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Props = {
   token: string;
@@ -9,6 +21,24 @@ type Props = {
 };
 
 type Step = "camera" | "confirm" | "done";
+
+function StepDots({ step }: { step: Step }) {
+  const index = step === "camera" ? 0 : step === "confirm" ? 1 : 2;
+  return (
+    <div className="mb-6 flex items-center justify-center gap-2">
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          className="h-1.5 rounded-full transition-all"
+          style={{
+            width: i === index ? 24 : 8,
+            background: i <= index ? "var(--accent)" : "var(--border)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
   const [step, setStep] = useState<Step>("camera");
@@ -21,6 +51,8 @@ export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const isClockIn = nextType === "Clock In";
 
   useEffect(() => {
     if (step !== "camera" || photoDataUrl) return;
@@ -61,6 +93,7 @@ export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
 
   function retake() {
     setPhotoDataUrl(null);
+    setError(null);
   }
 
   async function handleSubmit() {
@@ -106,102 +139,153 @@ export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
   }
 
   return (
-    <div
-      className="min-h-screen p-5"
-      style={{ background: "linear-gradient(to bottom right, #f0f4ff, #dfe9f3)" }}
-    >
-      <div className="mx-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="mb-1 text-center text-xl font-bold text-slate-900">AZP Attendance</h1>
-        <p className="mb-5 text-center text-sm text-slate-500">{studentName}</p>
+    <div className="relative min-h-screen bg-background p-5">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
 
-        {step === "camera" && (
-          <div>
-            {photoDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoDataUrl} alt="Selfie preview" className="mb-4 aspect-[4/3] w-full rounded-xl object-cover" />
-            ) : (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="mb-4 aspect-[4/3] w-full rounded-xl bg-slate-200 object-cover"
-              />
-            )}
-            <canvas ref={canvasRef} className="hidden" />
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center py-10">
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-foreground">
+            A
+          </div>
+          <h1 className="text-center text-lg font-bold tracking-tight text-foreground">
+            AZP Attendance
+          </h1>
+          <p className="text-center text-sm text-muted">{studentName}</p>
+        </div>
 
-            {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+          {step !== "done" && <StepDots step={step} />}
 
-            {photoDataUrl ? (
+          {step === "camera" && (
+            <div>
+              {photoDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoDataUrl}
+                  alt="Selfie preview"
+                  className="mb-4 aspect-[4/3] w-full rounded-xl object-cover"
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="mb-4 aspect-[4/3] w-full rounded-xl bg-surface-hover object-cover"
+                />
+              )}
+              <canvas ref={canvasRef} className="hidden" />
+
+              {error && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              {photoDataUrl ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={retake}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 font-semibold text-foreground transition hover:bg-surface-hover"
+                  >
+                    <RotateCcw size={16} />
+                    Retake
+                  </button>
+                  <button
+                    onClick={() => setStep("confirm")}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-accent-foreground transition hover:opacity-90"
+                  >
+                    Next
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={snap}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-accent-foreground transition hover:opacity-90"
+                >
+                  <Camera size={18} />
+                  Snap Photo
+                </button>
+              )}
+            </div>
+          )}
+
+          {step === "confirm" && (
+            <div>
+              {photoDataUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoDataUrl}
+                  alt="Selfie preview"
+                  className="mb-4 aspect-[4/3] w-full rounded-xl object-cover"
+                />
+              )}
+
+              <div
+                className="mb-4 flex items-center justify-center gap-2 rounded-xl p-4 text-center"
+                style={{
+                  background: isClockIn ? "var(--chart-blue-soft)" : "var(--chart-orange-soft)",
+                  color: isClockIn ? "var(--chart-blue)" : "var(--chart-orange)",
+                }}
+              >
+                {isClockIn ? <LogIn size={20} /> : <LogOut size={20} />}
+                <p className="font-semibold">Confirm {nextType}</p>
+              </div>
+
+              {locationStatus === "error" && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  Location fetch failed. Please allow location access and try again.
+                </div>
+              )}
+              {error && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  {error}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
-                  onClick={retake}
-                  className="flex-1 rounded-xl border border-slate-300 py-3 font-semibold text-slate-700"
+                  onClick={() => setStep("camera")}
+                  disabled={submitting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 font-semibold text-foreground transition hover:bg-surface-hover disabled:opacity-60"
                 >
-                  🔄 Retake
+                  <ArrowLeft size={16} />
+                  Back
                 </button>
                 <button
-                  onClick={() => setStep("confirm")}
-                  className="flex-1 rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
                 >
-                  Next ➡️
+                  <Check size={16} />
+                  {submitting ? "Submitting..." : "Submit"}
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={snap}
-                className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
-              >
-                Snap Photo
-              </button>
-            )}
-          </div>
-        )}
-
-        {step === "confirm" && (
-          <div>
-            {photoDataUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoDataUrl} alt="Selfie preview" className="mb-4 aspect-[4/3] w-full rounded-xl object-cover" />
-            )}
-            <p className="mb-4 text-center text-base text-slate-700">
-              Confirm <span className="font-bold">{nextType}</span> for{" "}
-              <span className="font-bold">{studentName}</span>?
-            </p>
-
-            {locationStatus === "error" && (
-              <p className="mb-4 text-center text-sm text-red-600">
-                ❌ Location fetch failed. Please allow location access and try again.
-              </p>
-            )}
-            {error && <p className="mb-4 text-center text-sm text-red-600">{error}</p>}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep("camera")}
-                disabled={submitting}
-                className="flex-1 rounded-xl border border-slate-300 py-3 font-semibold text-slate-700 disabled:opacity-60"
-              >
-                ⬅️ Back
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {submitting ? "Submitting..." : "✅ Submit"}
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {step === "done" && (
-          <div className="py-6 text-center">
-            <p className="mb-2 text-2xl">✅</p>
-            <p className="text-lg font-semibold text-slate-900">{resultType} recorded!</p>
-            <p className="mt-1 text-sm text-slate-500">You can close this page now.</p>
-          </div>
-        )}
+          {step === "done" && (
+            <div className="py-6 text-center">
+              <div
+                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
+                style={{
+                  background: resultType === "Clock In" ? "var(--chart-blue-soft)" : "var(--chart-orange-soft)",
+                  color: resultType === "Clock In" ? "var(--chart-blue)" : "var(--chart-orange)",
+                }}
+              >
+                <CheckCircle2 size={28} />
+              </div>
+              <p className="text-lg font-semibold text-foreground">{resultType} recorded!</p>
+              <p className="mt-1 text-sm text-muted">You can close this page now.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
