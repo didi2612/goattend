@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { getNextAttendanceType } from "@/lib/students";
 import { PublicAttendanceForm } from "@/components/PublicAttendanceForm";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,14 @@ export default async function AttendPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  const [lastRecord] = (await sql`
-    SELECT type FROM attendance_log WHERE student_id = ${student.id} ORDER BY timestamp DESC LIMIT 1
-  `) as { type: "Clock In" | "Clock Out" }[];
-  const nextType: "Clock In" | "Clock Out" = lastRecord?.type === "Clock In" ? "Clock Out" : "Clock In";
+  const { type: nextType, staleClockInId } = await getNextAttendanceType(student.id);
 
-  return <PublicAttendanceForm token={token} studentName={student.name} nextType={nextType} />;
+  return (
+    <PublicAttendanceForm
+      token={token}
+      studentName={student.name}
+      nextType={nextType}
+      hadMissedClockOut={staleClockInId != null}
+    />
+  );
 }

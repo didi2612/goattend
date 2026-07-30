@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, MapPin, LogIn, LogOut, ClipboardEdit, ImageOff, MessageSquare, Trash2 } from "lucide-react";
+import { X, MapPin, LogIn, LogOut, ClipboardEdit, ImageOff, MessageSquare, Trash2, AlertTriangle } from "lucide-react";
 import type { AttendanceRecord } from "@/lib/queries";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -19,6 +19,18 @@ function TypeBadge({ type }: { type: AttendanceRecord["type"] }) {
     >
       {isIn ? <LogIn size={12} /> : <LogOut size={12} />}
       {type}
+    </span>
+  );
+}
+
+function FlagBadge({ reason }: { reason: string | null }) {
+  return (
+    <span
+      title={reason ?? undefined}
+      className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500"
+    >
+      <AlertTriangle size={11} />
+      Flagged
     </span>
   );
 }
@@ -172,6 +184,7 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
                   <div className="flex flex-wrap items-center gap-1.5">
                     <TypeBadge type={r.type} />
                     {r.source === "manual" && <ManualBadge />}
+                    {r.flagged && <FlagBadge reason={r.flag_reason} />}
                     {r.remarks && <MessageSquare size={13} className="text-muted" />}
                   </div>
                 </td>
@@ -258,6 +271,7 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
                 <div className="flex items-center gap-1.5">
                   <TypeBadge type={selected.type} />
                   {selected.source === "manual" && <ManualBadge />}
+                  {selected.flagged && <FlagBadge reason={selected.flag_reason} />}
                   {canManage(selected) && (
                     <button
                       onClick={() => setDeleting(selected)}
@@ -273,6 +287,12 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
                 <span className="font-medium text-foreground">Time:</span>{" "}
                 {new Date(selected.timestamp).toLocaleString("en-MY")}
               </p>
+              {selected.flagged && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  {selected.flag_reason ?? "This record was flagged for review."}
+                </div>
+              )}
               {selected.latitude != null && selected.longitude != null ? (
                 <>
                   <p className="text-sm text-muted">

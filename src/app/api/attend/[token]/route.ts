@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { getNextAttendanceType } from "@/lib/students";
 import { uploadImage } from "@/lib/upload";
 import { sendTelegramPhoto } from "@/lib/telegram";
 
@@ -30,10 +31,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   // The type is always derived server-side from the student's last record,
   // never trusted from the client, so a submission can't be spoofed as the
   // wrong clock event.
-  const [lastRecord] = (await sql`
-    SELECT type FROM attendance_log WHERE student_id = ${student.id} ORDER BY timestamp DESC LIMIT 1
-  `) as { type: "Clock In" | "Clock Out" }[];
-  const type: "Clock In" | "Clock Out" = lastRecord?.type === "Clock In" ? "Clock Out" : "Clock In";
+  const { type, staleClockInId } = await getNextAttendanceType(student.id);
+
+  if (staleClockInId != null) {
+    // A previous Clock In was never followed by a Clock Out (student forgot).
+    // Today starts fresh instead of forcing a same-day-looking Clock Out for
+    // an event that never happened - flag the orphaned record for review.
+    await sql`
+      UPDATE attendance_log
+      SET flagged = TRUE, flag_reason = 'Missing clock-out - no matching Clock Out was recorded before the next Clock In.'
+      WHERE id = ${staleClockInId}
+    `;
+  }
 
   const imageUrl = await uploadImage(imageData);
   const timestamp = new Date().toISOString();
@@ -45,5 +54,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   await sendTelegramPhoto({ name: student.name, type, timestamp, latitude, longitude, photoUrl: imageUrl });
 
-  return NextResponse.json({ ok: true, type });
+  return NextResponse.json({ ok: true, type, hadMissedClockOut: staleClockInId != null });
 }

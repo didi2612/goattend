@@ -71,6 +71,41 @@ export async function listVisibleStudents(session: SessionPayload): Promise<Stud
   ])) as Student[];
 }
 
+export type NextAttendance = {
+  type: "Clock In" | "Clock Out";
+  /** Set when the student's last record is an unmatched Clock In from a
+   * previous day (they forgot to clock out). We start today fresh with
+   * another Clock In rather than forcing a same-day-looking Clock Out for
+   * an event that never happened today, and flag the orphaned record so
+   * a supervisor can follow up. */
+  staleClockInId?: number;
+};
+
+/**
+ * Determines what a student's next attendance event should be. Normally this
+ * just alternates on their last record, but a lone Clock In left over from a
+ * previous calendar day (a forgotten clock-out) doesn't count toward today -
+ * that case is flagged instead of forcing a same-day Clock Out.
+ */
+export async function getNextAttendanceType(studentId: number): Promise<NextAttendance> {
+  const [lastRecord] = (await sql`
+    SELECT id, type,
+      (timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')::date = (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date AS is_today
+    FROM attendance_log
+    WHERE student_id = ${studentId}
+    ORDER BY timestamp DESC
+    LIMIT 1
+  `) as { id: number; type: "Clock In" | "Clock Out"; is_today: boolean }[];
+
+  if (!lastRecord || lastRecord.type === "Clock Out") {
+    return { type: "Clock In" };
+  }
+  if (lastRecord.is_today) {
+    return { type: "Clock Out" };
+  }
+  return { type: "Clock In", staleClockInId: lastRecord.id };
+}
+
 export async function createStudent(name: string, ownerId: number): Promise<Student> {
   const token = await generateAttendanceSlug(name);
   const [student] = (await sql`

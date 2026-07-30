@@ -13,11 +13,13 @@ import {
   LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LogoBadge } from "@/components/LogoBadge";
 
 type Props = {
   token: string;
   studentName: string;
   nextType: "Clock In" | "Clock Out";
+  hadMissedClockOut?: boolean;
 };
 
 type Step = "camera" | "confirm" | "done";
@@ -40,7 +42,7 @@ function StepDots({ step }: { step: Step }) {
   );
 }
 
-export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
+export function PublicAttendanceForm({ token, studentName, nextType, hadMissedClockOut }: Props) {
   const [step, setStep] = useState<Step>("camera");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "error">("idle");
@@ -146,14 +148,20 @@ export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
 
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center py-10">
         <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-foreground">
-            G
-          </div>
+          <LogoBadge size={44} imageSize={28} rounded="rounded-xl" />
           <h1 className="text-center text-lg font-bold tracking-tight text-foreground">
             AZP : GO ATTEND
           </h1>
           <p className="text-center text-sm text-muted">{studentName}</p>
         </div>
+
+        {hadMissedClockOut && step !== "done" && (
+          <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-500/10 p-3 text-sm text-red-500">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            Looks like you didn&apos;t clock out last time. Today will start fresh with a Clock In,
+            and we&apos;ve flagged the missing clock-out for your supervisor.
+          </div>
+        )}
 
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           {step !== "done" && <StepDots step={step} />}

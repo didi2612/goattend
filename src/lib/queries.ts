@@ -13,6 +13,8 @@ export type AttendanceRecord = {
   timestamp: string;
   source: "self" | "manual";
   remarks: string | null;
+  flagged: boolean;
+  flag_reason: string | null;
   student_owner_id: number;
 };
 
@@ -52,6 +54,7 @@ export async function getAttendanceLog(
   const records = await sql.query(
     `SELECT a.id, a.student_id, s.name AS student_name, a.type, a.image_url,
             a.latitude, a.longitude, a.timestamp, a.source, a.remarks,
+            a.flagged, a.flag_reason,
             s.owner_id AS student_owner_id
      FROM attendance_log a
      JOIN students s ON s.id = a.student_id

@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LogoBadge } from "@/components/LogoBadge";
 
 export function AuthShell({
   title,
@@ -22,9 +23,7 @@ export function AuthShell({
 
       <div className="relative w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-xl font-bold text-accent-foreground shadow-lg shadow-accent/20">
-            G
-          </div>
+          <LogoBadge size={48} imageSize={30} rounded="rounded-2xl" className="shadow-lg shadow-black/20" />
           <div>
             <h1 className="text-center text-lg font-bold tracking-tight text-foreground">{title}</h1>
             {subtitle && <p className="mt-1 text-center text-sm text-muted">{subtitle}</p>}

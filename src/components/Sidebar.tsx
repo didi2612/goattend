@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LogoBadge } from "@/components/LogoBadge";
 
 type NavItem = { href: string; label: string; icon: React.ComponentType<{ size?: number }> };
 
@@ -46,9 +47,7 @@ export function Sidebar({
   const navContent = (
     <>
       <div className="flex items-center gap-2 px-5 py-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
-          G
-        </div>
+        <LogoBadge size={32} imageSize={20} />
         <span className="text-sm font-bold tracking-tight text-foreground">AZP : GO ATTEND</span>
       </div>
 
@@ -98,9 +97,7 @@ export function Sidebar({
       {/* Mobile top bar */}
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-foreground">
-            G
-          </div>
+          <LogoBadge size={28} imageSize={17} />
           <span className="text-sm font-bold text-foreground">AZP : GO ATTEND</span>
         </div>
         <button
