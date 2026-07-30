@@ -61,6 +61,9 @@ function LoginForm() {
             onChange={(e) => setIdentifier(e.target.value)}
             className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
             required
           />
