@@ -1,8 +1,8 @@
 /**
- * Forwards a captured selfie to the external upload.php endpoint (URL supplied
- * later via UPLOAD_ENDPOINT_URL) and returns the public URL it stores the
- * image at. Adjust the request/response shape here once the endpoint's real
- * contract is known.
+ * Forwards a captured selfie to the external upload.php endpoint. Matches
+ * original/upload.php's contract: multipart field named `file`, JSON response
+ * `{ success: true, filename, url }` on success or `{ error }` with a non-2xx
+ * status on failure.
  */
 export async function uploadImage(imageDataUrl: string): Promise<string> {
   const endpoint = process.env.UPLOAD_ENDPOINT_URL;
@@ -14,17 +14,14 @@ export async function uploadImage(imageDataUrl: string): Promise<string> {
   const buffer = Buffer.from(base64, "base64");
 
   const form = new FormData();
-  form.append("image", new Blob([buffer], { type: "image/png" }), `${Date.now()}.png`);
+  form.append("file", new Blob([buffer], { type: "image/jpeg" }), `${Date.now()}.jpg`);
 
   const res = await fetch(endpoint, { method: "POST", body: form });
-  if (!res.ok) {
-    throw new Error(`upload.php responded with ${res.status}`);
+  const data = (await res.json()) as { success?: boolean; url?: string; error?: string };
+
+  if (!res.ok || !data.success || !data.url) {
+    throw new Error(`upload.php failed: ${data.error ?? res.status}`);
   }
 
-  const contentType = res.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    const data = (await res.json()) as { url: string };
-    return data.url;
-  }
-  return (await res.text()).trim();
+  return data.url;
 }

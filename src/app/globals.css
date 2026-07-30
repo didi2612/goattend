@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+  --border: #e5e7eb;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --accent: #4f46e5;
+  --accent-foreground: #ffffff;
+  --accent-soft: #eef2ff;
+  --ring: #6366f1;
+
+  /* Chart categorical slots (validated: adjacent CVD ΔE 24.7, normal-vision ΔE 33.6) */
+  --chart-blue: #2a78d6;
+  --chart-orange: #eb6834;
+  --chart-blue-soft: rgba(42, 120, 214, 0.12);
+  --chart-orange-soft: rgba(235, 104, 52, 0.12);
+}
+
+.dark {
+  --background: #0a0b0f;
+  --surface: #14161c;
+  --surface-hover: #1c1f28;
+  --border: #262a35;
+  --foreground: #e5e7eb;
+  --muted: #8b91a1;
+  --accent: #818cf8;
+  --accent-foreground: #0a0b0f;
+  --accent-soft: #1e1f3a;
+  --ring: #818cf8;
+
+  /* Chart categorical slots (validated: adjacent CVD ΔE 26.8, normal-vision ΔE 31.8) */
+  --chart-blue: #3987e5;
+  --chart-orange: #d95926;
+  --chart-blue-soft: rgba(57, 135, 229, 0.16);
+  --chart-orange-soft: rgba(217, 89, 38, 0.18);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Slim scrollbars that match the theme instead of the OS default. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }

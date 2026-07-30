@@ -5,11 +5,11 @@ const PUBLIC_PATHS = [
   "/login",
   "/forgot-password",
   "/set-password",
+  "/attend",
   "/api/auth/login",
   "/api/auth/forgot-password",
   "/api/auth/set-password",
-  "/api/employees",
-  "/api/attendance",
+  "/api/attend",
 ];
 
 const SUPERADMIN_PATHS = ["/users", "/api/admin/users"];

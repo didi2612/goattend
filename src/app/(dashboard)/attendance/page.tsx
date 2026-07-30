@@ -1,32 +1,38 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getAttendanceLog } from "@/lib/queries";
-import { sql } from "@/lib/db";
+import { listVisibleStudents } from "@/lib/students";
+import { getServerSession } from "@/lib/session";
 import { AttendanceTable } from "@/components/AttendanceTable";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default async function AttendancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ employeeId?: string; type?: string; page?: string }>;
+  searchParams: Promise<{ studentId?: string; type?: string; page?: string }>;
 }) {
+  const session = await getServerSession();
+  if (!session) redirect("/login");
+
   const params = await searchParams;
   const page = Math.max(1, Number(params.page) || 1);
-  const employeeId = params.employeeId ? Number(params.employeeId) : undefined;
+  const studentId = params.studentId ? Number(params.studentId) : undefined;
   const type = params.type || undefined;
 
-  const [{ records, total }, employees] = await Promise.all([
-    getAttendanceLog({ employeeId, type, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-    sql`SELECT id, name FROM employees ORDER BY name`,
+  const [{ records, total }, students] = await Promise.all([
+    getAttendanceLog(session, { studentId, type, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+    listVisibleStudents(session),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function buildHref(overrides: Record<string, string | undefined>) {
     const next = new URLSearchParams();
-    if (employeeId) next.set("employeeId", String(employeeId));
+    if (studentId) next.set("studentId", String(studentId));
     if (type) next.set("type", type);
     if (page > 1) next.set("page", String(page));
     for (const [k, v] of Object.entries(overrides)) {
@@ -38,27 +44,25 @@ export default async function AttendancePage({
 
   return (
     <div>
-      <h2 className="mb-6 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        Attendance Log
-      </h2>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground">Attendance Log</h1>
 
       <form className="mb-6 flex flex-wrap gap-3" action="/attendance" method="get">
         <select
-          name="employeeId"
-          defaultValue={employeeId ?? ""}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          name="studentId"
+          defaultValue={studentId ?? ""}
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="">All employees</option>
-          {(employees as { id: number; name: string }[]).map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
+          <option value="">All students</option>
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
             </option>
           ))}
         </select>
         <select
           name="type"
           defaultValue={type ?? ""}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">All types</option>
           <option value="Clock In">Clock In</option>
@@ -66,7 +70,7 @@ export default async function AttendancePage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
         >
           Filter
         </button>
@@ -74,7 +78,7 @@ export default async function AttendancePage({
 
       <AttendanceTable records={records} />
 
-      <div className="mt-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+      <div className="mt-4 flex items-center justify-between text-sm text-muted">
         <span>
           Page {page} of {totalPages}
         </span>
@@ -82,22 +86,22 @@ export default async function AttendancePage({
           <Link
             href={buildHref({ page: page > 1 ? String(page - 1) : undefined })}
             aria-disabled={page <= 1}
-            className={`rounded-lg border border-slate-300 px-3 py-1.5 dark:border-slate-700 ${
-              page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+            className={`flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 ${
+              page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-surface-hover"
             }`}
           >
+            <ChevronLeft size={15} />
             Previous
           </Link>
           <Link
             href={buildHref({ page: String(page + 1) })}
             aria-disabled={page >= totalPages}
-            className={`rounded-lg border border-slate-300 px-3 py-1.5 dark:border-slate-700 ${
-              page >= totalPages
-                ? "pointer-events-none opacity-40"
-                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+            className={`flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 ${
+              page >= totalPages ? "pointer-events-none opacity-40" : "hover:bg-surface-hover"
             }`}
           >
             Next
+            <ChevronRight size={15} />
           </Link>
         </div>
       </div>

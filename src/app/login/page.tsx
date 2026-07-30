@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AuthShell } from "@/components/AuthShell";
 
 export default function LoginPage() {
   return (
@@ -47,56 +48,45 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-      >
-        <h1 className="mb-6 text-center text-xl font-bold text-slate-900 dark:text-slate-100">
-          AZP Attendance Admin
-        </h1>
-
-        <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-          Email
-        </label>
+    <AuthShell title="AZP Attendance Admin">
+      <form onSubmit={handleSubmit}>
+        <label className="mb-1 block text-sm font-medium text-foreground">Email</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           autoComplete="username"
           required
         />
 
-        <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-          Password
-        </label>
+        <label className="mb-1 block text-sm font-medium text-foreground">Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           autoComplete="current-password"
           required
         />
 
-        {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-blue-600 py-2.5 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded-lg bg-accent py-2.5 font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
 
         <Link
           href="/forgot-password"
-          className="mt-4 block text-center text-sm text-blue-600 hover:underline"
+          className="mt-4 block text-center text-sm text-accent hover:underline"
         >
           Forgot password?
         </Link>
       </form>
-    </div>
+    </AuthShell>
   );
 }

@@ -28,3 +28,31 @@ export async function sendTelegramPhoto(params: {
     }),
   });
 }
+
+export async function sendTelegramMessage(params: {
+  name: string;
+  type: string;
+  timestamp: string;
+  recordedByEmail: string;
+}) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  const { name, type, timestamp, recordedByEmail } = params;
+  const text =
+    `\u{1F551} <b>${type}</b> (manual entry)\n\n` +
+    `<b>Name:</b> ${name}\n` +
+    `<b>Time:</b> ${timestamp}\n` +
+    `<b>Recorded by:</b> ${recordedByEmail}`;
+
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+    }),
+  });
+}
