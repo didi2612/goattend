@@ -147,10 +147,10 @@ export function PublicAttendanceForm({ token, studentName, nextType }: Props) {
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center py-10">
         <div className="mb-6 flex flex-col items-center gap-2">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-foreground">
-            A
+            G
           </div>
           <h1 className="text-center text-lg font-bold tracking-tight text-foreground">
-            AZP Attendance
+            AZP : GO ATTEND
           </h1>
           <p className="text-center text-sm text-muted">{studentName}</p>
         </div>

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 
 type User = {
   id: number;
+  username: string;
   email: string;
   name: string | null;
   role: "superadmin" | "admin";
@@ -80,6 +81,7 @@ export default function UsersPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border text-muted">
             <tr>
+              <th className="px-4 py-3 font-medium">Username</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Role</th>
@@ -90,8 +92,9 @@ export default function UsersPage() {
           <tbody className="divide-y divide-border">
             {users.map((u) => (
               <tr key={u.id} className="transition hover:bg-surface-hover">
-                <td className="px-4 py-3 font-medium text-foreground">{u.email}</td>
-                <td className="px-4 py-3 text-muted">{u.name ?? "—"}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{u.username}</td>
+                <td className="px-4 py-3 text-muted">{u.email}</td>
+                <td className="px-4 py-3 text-muted">{u.name ?? "-"}</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center gap-1 text-muted capitalize">
                     {u.role === "superadmin" && <ShieldCheck size={13} className="text-accent" />}
@@ -156,7 +159,7 @@ export default function UsersPage() {
             ))}
             {!loading && users.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-muted">
                   No supervisor accounts yet.
                 </td>
               </tr>

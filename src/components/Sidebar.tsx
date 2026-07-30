@@ -25,11 +25,11 @@ const NAV_ITEMS: NavItem[] = [
 const SUPERADMIN_ITEM: NavItem = { href: "/users", label: "Users", icon: ShieldCheck };
 
 export function Sidebar({
-  email,
+  username,
   role,
   isSuperadmin,
 }: {
-  email: string;
+  username: string;
   role: string;
   isSuperadmin: boolean;
 }) {
@@ -47,9 +47,9 @@ export function Sidebar({
     <>
       <div className="flex items-center gap-2 px-5 py-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
-          A
+          G
         </div>
-        <span className="text-sm font-bold tracking-tight text-foreground">AZP Attendance</span>
+        <span className="text-sm font-bold tracking-tight text-foreground">AZP : GO ATTEND</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
@@ -77,7 +77,7 @@ export function Sidebar({
       <div className="mt-auto space-y-3 border-t border-border p-4">
         <div className="flex items-center justify-between rounded-lg px-1">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">{email}</p>
+            <p className="truncate text-sm font-medium text-foreground">{username}</p>
             <p className="text-xs capitalize text-muted">{role}</p>
           </div>
           <ThemeToggle />
@@ -99,9 +99,9 @@ export function Sidebar({
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-foreground">
-            A
+            G
           </div>
-          <span className="text-sm font-bold text-foreground">AZP Attendance</span>
+          <span className="text-sm font-bold text-foreground">AZP : GO ATTEND</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}

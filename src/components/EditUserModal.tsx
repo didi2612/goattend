@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type User = { id: number; email: string; name: string | null };
+type User = { id: number; username: string; email: string; name: string | null };
 
 export function EditUserModal({
   user,
@@ -13,12 +13,17 @@ export function EditUserModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [username, setUsername] = useState(user.username);
   const [name, setName] = useState(user.name ?? "");
   const [email, setEmail] = useState(user.email);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
+    if (!username.trim()) {
+      setError("Username cannot be empty");
+      return;
+    }
     if (!email.trim()) {
       setError("Email cannot be empty");
       return;
@@ -29,7 +34,7 @@ export function EditUserModal({
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || null, email: email.trim() }),
+        body: JSON.stringify({ username: username.trim(), name: name.trim() || null, email: email.trim() }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -50,6 +55,13 @@ export function EditUserModal({
         className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-2xl"
       >
         <h3 className="mb-4 text-lg font-bold text-foreground">Edit User</h3>
+
+        <label className="mb-1 block text-sm font-medium text-foreground">Username</label>
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
 
         <label className="mb-1 block text-sm font-medium text-foreground">Name</label>
         <input

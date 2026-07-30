@@ -10,7 +10,7 @@ export function AuthShell({ title, children }: { title: string; children: React.
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-bold text-accent-foreground">
-            A
+            G
           </div>
           <h1 className="text-center text-lg font-bold tracking-tight text-foreground">{title}</h1>
         </div>

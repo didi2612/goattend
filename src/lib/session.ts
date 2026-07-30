@@ -8,6 +8,7 @@ export type Role = "superadmin" | "admin";
 
 export type SessionPayload = {
   userId: number;
+  username: string;
   email: string;
   role: Role;
 };
@@ -31,12 +32,18 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
     const { payload } = await jwtVerify(token, getSecretKey());
     if (
       typeof payload.userId !== "number" ||
+      typeof payload.username !== "string" ||
       typeof payload.email !== "string" ||
       (payload.role !== "superadmin" && payload.role !== "admin")
     ) {
       return null;
     }
-    return { userId: payload.userId, email: payload.email, role: payload.role };
+    return {
+      userId: payload.userId,
+      username: payload.username,
+      email: payload.email,
+      role: payload.role,
+    };
   } catch {
     return null;
   }

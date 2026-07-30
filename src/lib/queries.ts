@@ -159,48 +159,119 @@ export async function getOverviewStats(session: SessionPayload) {
   };
 }
 
-export type DailyTrendPoint = { date: string; clockIn: number; clockOut: number };
+export type DailyHoursPoint = { date: string; avgHours: number; studentsCount: number };
 
-export async function getDailyAttendanceTrend(
+/**
+ * Per student per day, "hours worked" is the span between their earliest
+ * Clock In and latest Clock Out that day. This is a simple approximation
+ * (it doesn't try to pair up multiple in/out cycles in one day) but matches
+ * how a normal single-shift day is actually recorded here.
+ */
+const HOURS_CTE = (ownerIds: number[] | null) => `
+  WITH events AS (
+    SELECT a.student_id, (a.timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')::date AS day,
+           a.type, a.timestamp
+    FROM attendance_log a
+    JOIN students s ON s.id = a.student_id
+    WHERE a.timestamp >= (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - ($1::int - 1)
+      ${ownerIds !== null ? "AND s.owner_id = ANY($2)" : ""}
+  ),
+  daily AS (
+    SELECT student_id, day,
+      MIN(timestamp) FILTER (WHERE type = 'Clock In') AS first_in,
+      MAX(timestamp) FILTER (WHERE type = 'Clock Out') AS last_out
+    FROM events
+    GROUP BY student_id, day
+  ),
+  durations AS (
+    SELECT student_id, day, EXTRACT(EPOCH FROM (last_out - first_in)) / 3600.0 AS hours
+    FROM daily
+    WHERE first_in IS NOT NULL AND last_out IS NOT NULL AND last_out > first_in
+  )
+`;
+
+export async function getDailyHoursTrend(
   session: SessionPayload,
   days = 14,
-): Promise<DailyTrendPoint[]> {
+): Promise<DailyHoursPoint[]> {
   const ownerIds = await getVisibleOwnerIds(session);
 
-  // generate_series builds the full day range (including zero-count days) in
-  // Malaysia local time, then left-joins actual counts onto it, so the series
-  // and the grouping use the same calendar-day boundary.
-  const baseQuery = `
-    WITH days AS (
+  // generate_series builds the full day range (including zero-record days) in
+  // Malaysia local time, then left-joins computed durations onto it, so the
+  // series and the grouping use the same calendar-day boundary.
+  const query = `
+    ${HOURS_CTE(ownerIds)},
+    days AS (
       SELECT generate_series(
         (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - ($1::int - 1),
         (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date,
         '1 day'
       )::date AS day
-    ),
-    events AS (
-      SELECT (a.timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')::date AS day, a.type
-      FROM attendance_log a
-      JOIN students s ON s.id = a.student_id
-      WHERE a.timestamp >= (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - ($1::int - 1)
-        ${ownerIds !== null ? "AND s.owner_id = ANY($2)" : ""}
     )
     SELECT
       to_char(days.day, 'YYYY-MM-DD') AS day,
-      COUNT(*) FILTER (WHERE events.type = 'Clock In')::int AS clock_in,
-      COUNT(*) FILTER (WHERE events.type = 'Clock Out')::int AS clock_out
+      COALESCE(AVG(durations.hours), 0) AS avg_hours,
+      COUNT(durations.hours)::int AS students_count
     FROM days
-    LEFT JOIN events ON events.day = days.day
+    LEFT JOIN durations ON durations.day = days.day
     GROUP BY days.day
     ORDER BY days.day
   `;
 
   const values: unknown[] = ownerIds !== null ? [days, ownerIds] : [days];
-  const rows = (await sql.query(baseQuery, values)) as {
+  const rows = (await sql.query(query, values)) as {
     day: string;
-    clock_in: number;
-    clock_out: number;
+    avg_hours: string;
+    students_count: number;
   }[];
 
-  return rows.map((r) => ({ date: r.day, clockIn: r.clock_in, clockOut: r.clock_out }));
+  return rows.map((r) => ({
+    date: r.day,
+    avgHours: Number(r.avg_hours),
+    studentsCount: r.students_count,
+  }));
+}
+
+export type StudentHoursSummary = {
+  studentId: number;
+  studentName: string;
+  totalHours: number;
+  daysWorked: number;
+};
+
+export async function getTopStudentsByHours(
+  session: SessionPayload,
+  days = 14,
+  limit = 5,
+): Promise<StudentHoursSummary[]> {
+  const ownerIds = await getVisibleOwnerIds(session);
+
+  const values: unknown[] = ownerIds !== null ? [days, ownerIds] : [days];
+  const limitIdx = values.length + 1;
+  values.push(limit);
+
+  const query = `
+    ${HOURS_CTE(ownerIds)}
+    SELECT s.id, s.name, SUM(durations.hours) AS total_hours, COUNT(*)::int AS days_worked
+    FROM durations
+    JOIN students s ON s.id = durations.student_id
+    WHERE s.active = TRUE
+    GROUP BY s.id, s.name
+    ORDER BY total_hours DESC
+    LIMIT $${limitIdx}
+  `;
+
+  const rows = (await sql.query(query, values)) as {
+    id: number;
+    name: string;
+    total_hours: string;
+    days_worked: number;
+  }[];
+
+  return rows.map((r) => ({
+    studentId: r.id,
+    studentName: r.name,
+    totalHours: Number(r.total_hours),
+    daysWorked: r.days_worked,
+  }));
 }

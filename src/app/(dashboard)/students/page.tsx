@@ -158,13 +158,17 @@ export default function StudentsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => copyLink(s)}
-                      className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
-                    >
-                      {copiedId === s.id ? <Check size={14} /> : <Link2 size={14} />}
-                      {copiedId === s.id ? "Copied!" : "Copy Link"}
-                    </button>
+                    {s.active ? (
+                      <button
+                        onClick={() => copyLink(s)}
+                        className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                      >
+                        {copiedId === s.id ? <Check size={14} /> : <Link2 size={14} />}
+                        {copiedId === s.id ? "Copied!" : "Copy Link"}
+                      </button>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {canManage(s) && (

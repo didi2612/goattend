@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
   const [user] = (await sql`
     UPDATE users SET password_hash = ${passwordHash}
     WHERE id = ${authToken.user_id}
-    RETURNING id, email, role
-  `) as { id: number; email: string; role: "superadmin" | "admin" }[];
+    RETURNING id, username, email, role
+  `) as { id: number; username: string; email: string; role: "superadmin" | "admin" }[];
 
   if (!user) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const sessionToken = await createSessionToken({
     userId: user.id,
+    username: user.username,
     email: user.email,
     role: user.role,
   });

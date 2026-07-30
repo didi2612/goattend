@@ -16,7 +16,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,11 +30,11 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!res.ok) {
-        setError("Invalid email or password");
+        setError("Invalid username or password");
         return;
       }
 
@@ -48,13 +48,13 @@ function LoginForm() {
   }
 
   return (
-    <AuthShell title="AZP Attendance Admin">
+    <AuthShell title="AZP : GO ATTEND">
       <form onSubmit={handleSubmit}>
-        <label className="mb-1 block text-sm font-medium text-foreground">Email</label>
+        <label className="mb-1 block text-sm font-medium text-foreground">Username</label>
         <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           autoComplete="username"
           required

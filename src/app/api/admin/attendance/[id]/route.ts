@@ -31,3 +31,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   `;
   return NextResponse.json(updated);
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  const [record] = (await sql`
+    SELECT a.id, s.owner_id
+    FROM attendance_log a
+    JOIN students s ON s.id = a.student_id
+    WHERE a.id = ${Number(id)}
+  `) as { id: number; owner_id: number }[];
+
+  if (!record) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!canManageStudent(session, record.owner_id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await sql`DELETE FROM attendance_log WHERE id = ${Number(id)}`;
+  return NextResponse.json({ ok: true });
+}

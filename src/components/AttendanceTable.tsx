@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, MapPin, LogIn, LogOut, ClipboardEdit, ImageOff, MessageSquare } from "lucide-react";
+import { X, MapPin, LogIn, LogOut, ClipboardEdit, ImageOff, MessageSquare, Trash2 } from "lucide-react";
 import type { AttendanceRecord } from "@/lib/queries";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type Me = { userId: number; email: string; role: "superadmin" | "admin" };
 
@@ -101,6 +102,7 @@ function RemarksEditor({
 export function AttendanceTable({ records: initialRecords }: { records: AttendanceRecord[] }) {
   const [records, setRecords] = useState(initialRecords);
   const [selected, setSelected] = useState<AttendanceRecord | null>(null);
+  const [deleting, setDeleting] = useState<AttendanceRecord | null>(null);
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
@@ -177,20 +179,34 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
                   {new Date(r.timestamp).toLocaleString("en-MY")}
                 </td>
                 <td className="px-4 py-3">
-                  {r.latitude != null && r.longitude != null ? (
-                    <a
-                      href={`https://maps.google.com/?q=${r.latitude},${r.longitude}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 text-accent hover:underline"
-                    >
-                      <MapPin size={13} />
-                      Map
-                    </a>
-                  ) : (
-                    <span className="text-muted">—</span>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {r.latitude != null && r.longitude != null ? (
+                      <a
+                        href={`https://maps.google.com/?q=${r.latitude},${r.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-accent hover:underline"
+                      >
+                        <MapPin size={13} />
+                        Map
+                      </a>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
+                    {canManage(r) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleting(r);
+                        }}
+                        title="Delete record"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-500/10"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -242,6 +258,15 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
                 <div className="flex items-center gap-1.5">
                   <TypeBadge type={selected.type} />
                   {selected.source === "manual" && <ManualBadge />}
+                  {canManage(selected) && (
+                    <button
+                      onClick={() => setDeleting(selected)}
+                      title="Delete record"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-500/10"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </div>
               <p className="text-sm text-muted">
@@ -278,6 +303,23 @@ export function AttendanceTable({ records: initialRecords }: { records: Attendan
             </div>
           </div>
         </div>
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title="Delete this record?"
+          message={`This permanently deletes the ${deleting.type} record for "${deleting.student_name}" from ${new Date(deleting.timestamp).toLocaleString("en-MY")}. This cannot be undone.`}
+          onConfirm={async () => {
+            const res = await fetch(`/api/admin/attendance/${deleting.id}`, { method: "DELETE" });
+            if (!res.ok) {
+              const data = await res.json().catch(() => null);
+              throw new Error(data?.error ?? "Failed to delete record");
+            }
+            setRecords((prev) => prev.filter((r) => r.id !== deleting.id));
+            setSelected((prev) => (prev && prev.id === deleting.id ? null : prev));
+          }}
+          onClose={() => setDeleting(null)}
+        />
       )}
     </>
   );

@@ -1,34 +1,44 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Users, CalendarCheck, ArrowRight, LogIn, LogOut as LogOutIcon, Radio } from "lucide-react";
-import { getOverviewStats, getDailyAttendanceTrend } from "@/lib/queries";
+import { Users, CalendarCheck, ArrowRight, LogIn, LogOut as LogOutIcon, Radio, Clock } from "lucide-react";
+import { getOverviewStats, getDailyHoursTrend, getTopStudentsByHours } from "@/lib/queries";
 import { listVisibleStudents } from "@/lib/students";
 import { getServerSession } from "@/lib/session";
 import { AttendanceTrendChart } from "@/components/AttendanceTrendChart";
 import { StudentLinksList } from "@/components/StudentLinksList";
+import { TopStudentsByHours } from "@/components/TopStudentsByHours";
 import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
 const STUDENT_LINKS_PREVIEW_COUNT = 8;
+const TREND_DAYS = 14;
 
 export default async function OverviewPage() {
   const session = await getServerSession();
   if (!session) redirect("/login");
 
-  const [{ totalStudents, todayCount, clockedInNow, recent }, trend, students] = await Promise.all([
-    getOverviewStats(session),
-    getDailyAttendanceTrend(session),
-    listVisibleStudents(session),
-  ]);
+  const [{ totalStudents, todayCount, clockedInNow, recent }, trend, topByHours, students] =
+    await Promise.all([
+      getOverviewStats(session),
+      getDailyHoursTrend(session, TREND_DAYS),
+      getTopStudentsByHours(session, TREND_DAYS),
+      listVisibleStudents(session),
+    ]);
+
+  const daysWithData = trend.filter((d) => d.studentsCount > 0);
+  const periodAvgHours =
+    daysWithData.length > 0
+      ? daysWithData.reduce((sum, d) => sum + d.avgHours, 0) / daysWithData.length
+      : 0;
 
   const scopeLabel = session.role === "admin" ? "Your Students" : "All Students";
 
   return (
     <div>
-      <PageHeader title="Overview" description={`Attendance snapshot — ${scopeLabel.toLowerCase()}`} />
+      <PageHeader title="Overview" description={`Attendance snapshot for ${scopeLabel.toLowerCase()}`} />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-6">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent">
             <Users size={20} />
@@ -59,13 +69,27 @@ export default async function OverviewPage() {
             <p className="mt-0.5 text-2xl font-bold text-foreground">{todayCount}</p>
           </div>
         </div>
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-6">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ background: "var(--chart-orange-soft)", color: "var(--chart-orange)" }}
+          >
+            <Clock size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted">Avg Hours/Day ({TREND_DAYS}d)</p>
+            <p className="mt-0.5 text-2xl font-bold text-foreground">
+              {periodAvgHours > 0 ? `${periodAvgHours.toFixed(1)}h` : "N/A"}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="rounded-2xl border border-border bg-surface p-6">
             <h2 className="mb-4 text-base font-semibold text-foreground">
-              Attendance, Last 14 Days
+              Avg Hours Worked Per Day, Last {TREND_DAYS} Days
             </h2>
             <AttendanceTrendChart data={trend} />
           </div>
@@ -109,21 +133,33 @@ export default async function OverviewPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface p-6 lg:col-span-1">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">Share Attendance Links</h2>
-            <Link
-              href="/students"
-              className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
-            >
-              View all
-              <ArrowRight size={14} />
-            </Link>
+        <div className="space-y-6 lg:col-span-1">
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Share Attendance Links</h2>
+              <Link
+                href="/students"
+                className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+              >
+                View all
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+            <p className="mb-3 text-sm text-muted">
+              Give each student their own link to submit attendance from. No login needed on their
+              end.
+            </p>
+            <StudentLinksList
+              students={students.filter((s) => s.active).slice(0, STUDENT_LINKS_PREVIEW_COUNT)}
+            />
           </div>
-          <p className="mb-3 text-sm text-muted">
-            Give each student their own link to submit attendance from &mdash; no login needed.
-          </p>
-          <StudentLinksList students={students.slice(0, STUDENT_LINKS_PREVIEW_COUNT)} />
+
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <h2 className="mb-3 text-base font-semibold text-foreground">
+              Top Students by Hours ({TREND_DAYS}d)
+            </h2>
+            <TopStudentsByHours students={topByHours} />
+          </div>
         </div>
       </div>
     </div>

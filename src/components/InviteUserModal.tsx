@@ -9,6 +9,7 @@ export function InviteUserModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"admin" | "superadmin">("admin");
@@ -16,6 +17,10 @@ export function InviteUserModal({
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
+    if (!username.trim()) {
+      setError("Username is required");
+      return;
+    }
     if (!email.trim()) {
       setError("Email is required");
       return;
@@ -26,7 +31,12 @@ export function InviteUserModal({
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), name: name.trim() || null, role }),
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim(),
+          name: name.trim() || null,
+          role,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -48,8 +58,18 @@ export function InviteUserModal({
       >
         <h3 className="mb-1 text-lg font-bold text-foreground">Invite Supervisor</h3>
         <p className="mb-4 text-sm text-muted">
-          They&apos;ll get an email with a link to set their password.
+          They&apos;ll get an email with a link to set their password, then log in with the
+          username below.
         </p>
+
+        <label className="mb-1 block text-sm font-medium text-foreground">Username</label>
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="e.g. jane"
+          className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
+          autoFocus
+        />
 
         <label className="mb-1 block text-sm font-medium text-foreground">Email</label>
         <input
@@ -57,7 +77,6 @@ export function InviteUserModal({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          autoFocus
         />
 
         <label className="mb-1 block text-sm font-medium text-foreground">Name (optional)</label>

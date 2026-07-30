@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AZP Attendance Admin",
+  title: "AZP : GO ATTEND",
   description: "Monitor student clock-in/out attendance for AZP.",
 };
 

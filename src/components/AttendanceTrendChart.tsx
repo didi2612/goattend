@@ -1,109 +1,136 @@
 "use client";
 
-import { useState } from "react";
-import type { DailyTrendPoint } from "@/lib/queries";
+import { useRef, useState } from "react";
+import type { DailyHoursPoint } from "@/lib/queries";
 
-const CLOCK_IN_COLOR = "var(--chart-blue)";
-const CLOCK_OUT_COLOR = "var(--chart-orange)";
+const LINE_COLOR = "var(--chart-blue)";
 
 const WIDTH = 720;
 const HEIGHT = 220;
 const PADDING_LEFT = 32;
 const PADDING_BOTTOM = 24;
 const PADDING_TOP = 12;
+const PADDING_RIGHT = 8;
 
 function formatDayLabel(iso: string) {
   const d = new Date(`${iso}T00:00:00`);
   return d.toLocaleDateString("en-MY", { day: "numeric", month: "short" });
 }
 
-export function AttendanceTrendChart({ data }: { data: DailyTrendPoint[] }) {
+function formatHours(hours: number) {
+  return `${hours.toFixed(1)}h`;
+}
+
+export function AttendanceTrendChart({ data }: { data: DailyHoursPoint[] }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const maxValue = Math.max(1, ...data.map((d) => Math.max(d.clockIn, d.clockOut)));
-  const niceMax = Math.ceil(maxValue / 5) * 5 || 5;
+  const maxValue = Math.max(1, ...data.map((d) => d.avgHours));
+  const niceMax = Math.ceil(maxValue / 2) * 2 || 2;
 
-  const plotWidth = WIDTH - PADDING_LEFT - 8;
+  const plotWidth = WIDTH - PADDING_LEFT - PADDING_RIGHT;
   const plotHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
-  const groupWidth = plotWidth / data.length;
-  const barWidth = Math.min(16, groupWidth / 2 - 3);
 
+  function xFor(i: number) {
+    return data.length <= 1
+      ? PADDING_LEFT + plotWidth / 2
+      : PADDING_LEFT + (i / (data.length - 1)) * plotWidth;
+  }
   function yFor(value: number) {
     return PADDING_TOP + plotHeight - (value / niceMax) * plotHeight;
   }
 
+  const points = data.map((d, i) => ({ x: xFor(i), y: yFor(d.avgHours) }));
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const areaPath =
+    points.length > 0
+      ? `${linePath} L${points[points.length - 1].x},${yFor(0)} L${points[0].x},${yFor(0)} Z`
+      : "";
+
   const ticks = [0, niceMax / 2, niceMax];
+
+  function handleMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current || data.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const relX = ((e.clientX - rect.left) / rect.width) * WIDTH;
+    let nearest = 0;
+    let nearestDist = Infinity;
+    points.forEach((p, i) => {
+      const dist = Math.abs(p.x - relX);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = i;
+      }
+    });
+    setHoverIdx(nearest);
+  }
 
   return (
     <div className="relative">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full" style={{ height: HEIGHT }}>
-        {/* gridlines + y ticks */}
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full"
+        style={{ height: HEIGHT }}
+        onMouseMove={handleMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
         {ticks.map((t) => (
           <g key={t}>
             <line
               x1={PADDING_LEFT}
-              x2={WIDTH}
+              x2={WIDTH - PADDING_RIGHT}
               y1={yFor(t)}
               y2={yFor(t)}
               stroke="var(--border)"
               strokeWidth={1}
             />
             <text x={0} y={yFor(t) + 4} fontSize={10} fill="var(--muted)">
-              {t}
+              {t}h
             </text>
           </g>
         ))}
 
-        {/* baseline */}
         <line
           x1={PADDING_LEFT}
-          x2={WIDTH}
+          x2={WIDTH - PADDING_RIGHT}
           y1={yFor(0)}
           y2={yFor(0)}
           stroke="var(--muted)"
           strokeWidth={1}
         />
 
-        {data.map((d, i) => {
-          const groupX = PADDING_LEFT + i * groupWidth + (groupWidth - barWidth * 2 - 2) / 2;
-          const inH = plotHeight - (yFor(d.clockIn) - PADDING_TOP);
-          const outH = plotHeight - (yFor(d.clockOut) - PADDING_TOP);
-          const showLabel = i === 0 || i === data.length - 1 || i === hoverIdx;
+        {areaPath && <path d={areaPath} fill={LINE_COLOR} opacity={0.1} />}
+        {linePath && <path d={linePath} fill="none" stroke={LINE_COLOR} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
 
+        {hoverIdx !== null && (
+          <line
+            x1={points[hoverIdx].x}
+            x2={points[hoverIdx].x}
+            y1={PADDING_TOP}
+            y2={yFor(0)}
+            stroke="var(--muted)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+          />
+        )}
+
+        {points.map((p, i) => {
+          const isHover = i === hoverIdx;
+          const showLabel = i === 0 || i === data.length - 1 || isHover;
           return (
-            <g
-              key={d.date}
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx((cur) => (cur === i ? null : cur))}
-            >
-              <rect x={groupX - 2} y={PADDING_TOP} width={barWidth * 2 + 6} height={plotHeight} fill="transparent" />
-              <rect
-                x={groupX}
-                y={yFor(d.clockIn)}
-                width={barWidth}
-                height={Math.max(inH, 0)}
-                rx={3}
-                fill={CLOCK_IN_COLOR}
-                opacity={hoverIdx === null || hoverIdx === i ? 1 : 0.45}
-              />
-              <rect
-                x={groupX + barWidth + 2}
-                y={yFor(d.clockOut)}
-                width={barWidth}
-                height={Math.max(outH, 0)}
-                rx={3}
-                fill={CLOCK_OUT_COLOR}
-                opacity={hoverIdx === null || hoverIdx === i ? 1 : 0.45}
+            <g key={data[i].date}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={isHover ? 5 : 4}
+                fill={LINE_COLOR}
+                stroke="var(--surface)"
+                strokeWidth={2}
               />
               {showLabel && (
-                <text
-                  x={groupX + barWidth + 1}
-                  y={HEIGHT - 6}
-                  fontSize={10}
-                  textAnchor="middle"
-                  fill="var(--muted)"
-                >
-                  {formatDayLabel(d.date)}
+                <text x={p.x} y={HEIGHT - 6} fontSize={10} textAnchor="middle" fill="var(--muted)">
+                  {formatDayLabel(data[i].date)}
                 </text>
               )}
             </g>
@@ -115,32 +142,18 @@ export function AttendanceTrendChart({ data }: { data: DailyTrendPoint[] }) {
         <div
           className="pointer-events-none absolute top-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs shadow-lg"
           style={{
-            left: `${((PADDING_LEFT + hoverIdx * groupWidth + groupWidth / 2) / WIDTH) * 100}%`,
+            left: `${(points[hoverIdx].x / WIDTH) * 100}%`,
             transform: "translateX(-50%)",
           }}
         >
           <p className="mb-1 font-semibold text-foreground">{formatDayLabel(data[hoverIdx].date)}</p>
           <p className="flex items-center gap-1.5 text-muted">
-            <span className="h-2 w-2 rounded-full" style={{ background: CLOCK_IN_COLOR }} />
-            Clock In: {data[hoverIdx].clockIn}
-          </p>
-          <p className="flex items-center gap-1.5 text-muted">
-            <span className="h-2 w-2 rounded-full" style={{ background: CLOCK_OUT_COLOR }} />
-            Clock Out: {data[hoverIdx].clockOut}
+            <span className="h-2 w-2 rounded-full" style={{ background: LINE_COLOR }} />
+            Avg {formatHours(data[hoverIdx].avgHours)} · {data[hoverIdx].studentsCount} student
+            {data[hoverIdx].studentsCount === 1 ? "" : "s"}
           </p>
         </div>
       )}
-
-      <div className="mt-2 flex items-center justify-center gap-5 text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: CLOCK_IN_COLOR }} />
-          Clock In
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: CLOCK_OUT_COLOR }} />
-          Clock Out
-        </span>
-      </div>
     </div>
   );
 }

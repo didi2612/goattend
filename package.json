@@ -13,7 +13,8 @@
     "db:migrate-ownership": "node scripts/migrate-ownership-model.mjs",
     "db:migrate-manual": "node scripts/migrate-manual-entries.mjs",
     "db:migrate-crud": "node scripts/migrate-crud-remarks.mjs",
-    "db:migrate-slugs": "node scripts/migrate-slug-tokens.mjs"
+    "db:migrate-slugs": "node scripts/migrate-slug-tokens.mjs",
+    "db:migrate-username": "node scripts/migrate-username.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -4,11 +4,12 @@ import { getServerSession } from "@/lib/session";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { active, role, name, email } = (await req.json()) as {
+  const { active, role, name, email, username } = (await req.json()) as {
     active?: boolean;
     role?: "superadmin" | "admin";
     name?: string;
     email?: string;
+    username?: string;
   };
 
   const session = await getServerSession();
@@ -18,7 +19,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
   }
 
-  if (active === undefined && role === undefined && name === undefined && email === undefined) {
+  if (
+    active === undefined &&
+    role === undefined &&
+    name === undefined &&
+    email === undefined &&
+    username === undefined
+  ) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
   if (role !== undefined && role !== "superadmin" && role !== "admin") {
@@ -30,6 +37,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (name !== undefined && !name.trim()) {
     return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
   }
+  if (username !== undefined) {
+    const normalized = username.trim().toLowerCase();
+    if (!/^[a-z0-9_-]+$/.test(normalized)) {
+      return NextResponse.json(
+        { error: "Username can only contain lowercase letters, numbers, - and _" },
+        { status: 400 },
+      );
+    }
+  }
 
   try {
     const [user] = (await sql`
@@ -37,9 +53,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         active = COALESCE(${active ?? null}, active),
         role = COALESCE(${role ?? null}, role),
         name = COALESCE(${name?.trim() ?? null}, name),
-        email = COALESCE(${email?.trim().toLowerCase() ?? null}, email)
+        email = COALESCE(${email?.trim().toLowerCase() ?? null}, email),
+        username = COALESCE(${username?.trim().toLowerCase() ?? null}, username)
       WHERE id = ${Number(id)}
-      RETURNING id, email, name, role, active, created_at
+      RETURNING id, username, email, name, role, active, created_at
     `) as unknown[];
 
     if (!user) {
@@ -48,7 +65,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json(user);
   } catch (err) {
     if (err instanceof Error && /unique/i.test(err.message)) {
-      return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
+      return NextResponse.json(
+        { error: "A user with this username or email already exists" },
+        { status: 409 },
+      );
     }
     throw err;
   }
