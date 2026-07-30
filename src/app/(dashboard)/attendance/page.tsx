@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { getAttendanceLog } from "@/lib/queries";
 import { listVisibleStudents } from "@/lib/students";
 import { getServerSession } from "@/lib/session";
 import { AttendanceTable } from "@/components/AttendanceTable";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -44,13 +45,24 @@ export default async function AttendancePage({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground">Attendance Log</h1>
+      <PageHeader
+        title="Attendance Log"
+        description="Every clock in/out submitted or manually recorded, newest first."
+      />
 
-      <form className="mb-6 flex flex-wrap gap-3" action="/attendance" method="get">
+      <form
+        className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-3"
+        action="/attendance"
+        method="get"
+      >
+        <span className="flex items-center gap-1.5 pl-1 text-sm font-medium text-muted">
+          <Filter size={14} />
+          Filter
+        </span>
         <select
           name="studentId"
           defaultValue={studentId ?? ""}
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">All students</option>
           {students.map((s) => (
@@ -62,7 +74,7 @@ export default async function AttendancePage({
         <select
           name="type"
           defaultValue={type ?? ""}
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">All types</option>
           <option value="Clock In">Clock In</option>
@@ -70,9 +82,9 @@ export default async function AttendancePage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+          className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
         >
-          Filter
+          Apply
         </button>
       </form>
 

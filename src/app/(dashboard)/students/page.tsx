@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { ManualAttendanceModal } from "@/components/ManualAttendanceModal";
 import { EditStudentModal } from "@/components/EditStudentModal";
+import { AddStudentModal } from "@/components/AddStudentModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DropdownMenu } from "@/components/DropdownMenu";
+import { PageHeader } from "@/components/PageHeader";
 
 type Student = {
   id: number;
@@ -58,9 +60,8 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
-  const [newName, setNewName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [addingStudent, setAddingStudent] = useState(false);
   const [recordingFor, setRecordingFor] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
@@ -79,20 +80,6 @@ export default function StudentsPage() {
   useEffect(() => {
     load();
   }, []);
-
-  async function addStudent(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newName.trim()) return;
-    setSubmitting(true);
-    await fetch("/api/admin/students", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
-    setNewName("");
-    setSubmitting(false);
-    load();
-  }
 
   async function toggleActive(id: number, active: boolean) {
     await fetch(`/api/admin/students/${id}`, {
@@ -130,24 +117,19 @@ export default function StudentsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground">Students</h1>
-
-      <form onSubmit={addStudent} className="mb-6 flex gap-3">
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="Student name"
-          className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
-        >
-          <UserPlus size={16} />
-          Add Student
-        </button>
-      </form>
+      <PageHeader
+        title="Students"
+        description="Manage students and their personal attendance links."
+        action={
+          <button
+            onClick={() => setAddingStudent(true)}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+          >
+            <UserPlus size={16} />
+            Add Student
+          </button>
+        }
+      />
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
         <table className="w-full text-left text-sm">
@@ -261,6 +243,10 @@ export default function StudentsPage() {
           }}
           onClose={() => setDeletingStudent(null)}
         />
+      )}
+
+      {addingStudent && (
+        <AddStudentModal onClose={() => setAddingStudent(false)} onSaved={load} />
       )}
     </div>
   );

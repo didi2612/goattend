@@ -105,6 +105,31 @@ export async function getOverviewStats(session: SessionPayload) {
         );
   const todayCount = (todayCountResult as { count: number }[])[0].count;
 
+  const clockedInResult =
+    ownerFilter === null
+      ? await sql`
+          SELECT COUNT(*)::int AS count FROM (
+            SELECT DISTINCT ON (a.student_id) a.student_id, a.type
+            FROM attendance_log a
+            JOIN students s ON s.id = a.student_id
+            WHERE s.active = TRUE
+            ORDER BY a.student_id, a.timestamp DESC
+          ) last_event
+          WHERE last_event.type = 'Clock In'
+        `
+      : await sql.query(
+          `SELECT COUNT(*)::int AS count FROM (
+             SELECT DISTINCT ON (a.student_id) a.student_id, a.type
+             FROM attendance_log a
+             JOIN students s ON s.id = a.student_id
+             WHERE s.active = TRUE AND s.owner_id = ANY($1)
+             ORDER BY a.student_id, a.timestamp DESC
+           ) last_event
+           WHERE last_event.type = 'Clock In'`,
+          [ownerFilter.owner_id],
+        );
+  const clockedInNow = (clockedInResult as { count: number }[])[0].count;
+
   const recentResult =
     ownerFilter === null
       ? await sql`
@@ -129,6 +154,7 @@ export async function getOverviewStats(session: SessionPayload) {
   return {
     totalStudents,
     todayCount,
+    clockedInNow,
     recent: recentResult as unknown as AttendanceRecord[],
   };
 }

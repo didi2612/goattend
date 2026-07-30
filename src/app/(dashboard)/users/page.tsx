@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { UserPlus, Send, ShieldCheck, Pencil, Trash2, Power, Users } from "lucide-react";
 import { AccessGrantsModal } from "@/components/AccessGrantsModal";
 import { EditUserModal } from "@/components/EditUserModal";
+import { InviteUserModal } from "@/components/InviteUserModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DropdownMenu, type MenuItem } from "@/components/DropdownMenu";
+import { PageHeader } from "@/components/PageHeader";
 
 type User = {
   id: number;
@@ -23,12 +25,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState<"admin" | "superadmin">("admin");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [managingAccessFor, setManagingAccessFor] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -44,33 +42,6 @@ export default function UsersPage() {
   useEffect(() => {
     load();
   }, []);
-
-  async function inviteUser(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-
-    const res = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), name: name.trim() || null, role }),
-    });
-
-    setSubmitting(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setError(data?.error ?? "Failed to invite user");
-      return;
-    }
-
-    setEmail("");
-    setName("");
-    setRole("admin");
-    setNotice("Invite sent.");
-    load();
-  }
 
   async function toggleActive(id: number, active: boolean) {
     await fetch(`/api/admin/users/${id}`, {
@@ -89,43 +60,20 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground">
-        Supervisor Accounts
-      </h1>
+      <PageHeader
+        title="Supervisor Accounts"
+        description="Invite admins and superadmins to help manage students."
+        action={
+          <button
+            onClick={() => setInviting(true)}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+          >
+            <UserPlus size={16} />
+            Invite
+          </button>
+        }
+      />
 
-      <form onSubmit={inviteUser} className="mb-6 flex flex-wrap gap-3">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          className="min-w-[220px] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name (optional)"
-          className="min-w-[160px] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as "admin" | "superadmin")}
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="admin">Admin (supervisor)</option>
-          <option value="superadmin">Superadmin</option>
-        </select>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
-        >
-          <UserPlus size={16} />
-          Invite
-        </button>
-      </form>
-
-      {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
       {notice && <p className="mb-4 text-sm text-emerald-500">{notice}</p>}
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
@@ -136,7 +84,7 @@ export default function UsersPage() {
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -216,6 +164,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      {inviting && <InviteUserModal onClose={() => setInviting(false)} onSaved={load} />}
 
       {managingAccessFor && (
         <AccessGrantsModal
