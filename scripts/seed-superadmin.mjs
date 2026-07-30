@@ -73,8 +73,16 @@ const html = `
                 <h1 style="margin:0 0 16px; font-size:19px; font-weight:700; color:${INK};">Set up your superadmin account</h1>
                 <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:${INK};">Hi${name ? ` ${name}` : ""},</p>
                 <p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:${INK};">
-                  You've been set up as a superadmin on <strong>AZP : GO ATTEND</strong>. Click below to set your password and sign in.
+                  You've been set up as a superadmin on <strong>AZP : GO ATTEND</strong>. Click below to set your password, then sign in with the username below.
                 </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px; width:100%;">
+                  <tr>
+                    <td style="background:${SURFACE}; border:1px solid ${BORDER}; border-radius:10px; padding:12px 16px;">
+                      <p style="margin:0; font-size:12px; color:${MUTED};">Your username</p>
+                      <p style="margin:2px 0 0; font-size:15px; font-weight:700; color:${INK};">${user.username}</p>
+                    </td>
+                  </tr>
+                </table>
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
                   <tr>
                     <td style="border-radius:10px; background:${ACCENT};">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus, Send, ShieldCheck, Pencil, Trash2, Power, Users } from "lucide-react";
+import { UserPlus, Send, ShieldCheck, Pencil, Trash2, Power, Users, KeyRound } from "lucide-react";
 import { AccessGrantsModal } from "@/components/AccessGrantsModal";
 import { EditUserModal } from "@/components/EditUserModal";
 import { InviteUserModal } from "@/components/InviteUserModal";
@@ -26,7 +26,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; isError: boolean } | null>(null);
   const [inviting, setInviting] = useState(false);
   const [managingAccessFor, setManagingAccessFor] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -56,7 +56,23 @@ export default function UsersPage() {
   async function resendInvite(id: number) {
     setNotice(null);
     const res = await fetch(`/api/admin/users/${id}/resend-invite`, { method: "POST" });
-    if (res.ok) setNotice("Invite resent.");
+    setNotice(
+      res.ok ? { text: "Invite resent.", isError: false } : { text: "Failed to resend invite.", isError: true },
+    );
+  }
+
+  async function sendReset(id: number) {
+    setNotice(null);
+    const res = await fetch(`/api/admin/users/${id}/send-reset`, { method: "POST" });
+    if (res.ok) {
+      setNotice({
+        text: "Reset link sent. Their current password still works until they use it.",
+        isError: false,
+      });
+    } else {
+      const data = await res.json().catch(() => null);
+      setNotice({ text: data?.error ?? "Failed to send reset link.", isError: true });
+    }
   }
 
   return (
@@ -75,7 +91,11 @@ export default function UsersPage() {
         }
       />
 
-      {notice && <p className="mb-4 text-sm text-emerald-500">{notice}</p>}
+      {notice && (
+        <p className={`mb-4 text-sm ${notice.isError ? "text-red-500" : "text-emerald-500"}`}>
+          {notice.text}
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
         <table className="w-full text-left text-sm">
@@ -139,6 +159,11 @@ export default function UsersPage() {
                             icon: Send,
                             onClick: () => resendInvite(u.id),
                           },
+                          u.activated && {
+                            label: "Send Reset Password",
+                            icon: KeyRound,
+                            onClick: () => sendReset(u.id),
+                          },
                           u.id !== me?.userId && {
                             label: u.active ? "Deactivate" : "Activate",
                             icon: Power,
@@ -173,7 +198,6 @@ export default function UsersPage() {
       {managingAccessFor && (
         <AccessGrantsModal
           grantee={managingAccessFor}
-          allUsers={users}
           onClose={() => setManagingAccessFor(null)}
         />
       )}

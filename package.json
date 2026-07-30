@@ -14,7 +14,8 @@
     "db:migrate-manual": "node scripts/migrate-manual-entries.mjs",
     "db:migrate-crud": "node scripts/migrate-crud-remarks.mjs",
     "db:migrate-slugs": "node scripts/migrate-slug-tokens.mjs",
-    "db:migrate-username": "node scripts/migrate-username.mjs"
+    "db:migrate-username": "node scripts/migrate-username.mjs",
+    "db:migrate-student-grants": "node scripts/migrate-student-grants.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

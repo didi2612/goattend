@@ -65,6 +65,19 @@ function emailShell(params: { preheader: string; heading: string; bodyHtml: stri
 `;
 }
 
+function usernameBadge(username: string) {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px; width:100%;">
+      <tr>
+        <td style="background:${SURFACE}; border:1px solid ${BORDER}; border-radius:10px; padding:12px 16px;">
+          <p style="margin:0; font-size:12px; color:${MUTED};">Your username</p>
+          <p style="margin:2px 0 0; font-size:15px; font-weight:700; color:${INK};">${username}</p>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
 function ctaButton(href: string, label: string) {
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
@@ -83,8 +96,13 @@ function ctaButton(href: string, label: string) {
   `;
 }
 
-export async function sendInviteEmail(params: { email: string; name: string | null; token: string }) {
-  const { email, name, token } = params;
+export async function sendInviteEmail(params: {
+  email: string;
+  username: string;
+  name: string | null;
+  token: string;
+}) {
+  const { email, username, name, token } = params;
   const link = `${getAppUrl()}/set-password?token=${token}`;
 
   const html = emailShell({
@@ -96,8 +114,9 @@ export async function sendInviteEmail(params: { email: string; name: string | nu
       </p>
       <p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:${INK};">
         You've been added as a supervisor on <strong>AZP : GO ATTEND</strong>. Click below to set
-        your password and sign in.
+        your password, then sign in with the username below.
       </p>
+      ${usernameBadge(username)}
       ${ctaButton(link, "Set Your Password")}
       <p style="margin:20px 0 0; font-size:12px; color:${MUTED};">This link expires in 7 days.</p>
     `,
@@ -113,8 +132,8 @@ export async function sendInviteEmail(params: { email: string; name: string | nu
   if (error) throw new Error(`Failed to send invite email: ${error.message}`);
 }
 
-export async function sendResetEmail(params: { email: string; token: string }) {
-  const { email, token } = params;
+export async function sendResetEmail(params: { email: string; username: string; token: string }) {
+  const { email, username, token } = params;
   const link = `${getAppUrl()}/set-password?token=${token}`;
 
   const html = emailShell({
@@ -122,11 +141,14 @@ export async function sendResetEmail(params: { email: string; token: string }) {
     heading: "Reset your password",
     bodyHtml: `
       <p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:${INK};">
-        We received a request to reset your password. Click below to choose a new one.
+        We received a request to reset your password. Click below to choose a new one. Your
+        current password still works until you do.
       </p>
+      ${usernameBadge(username)}
       ${ctaButton(link, "Reset Password")}
       <p style="margin:20px 0 0; font-size:12px; color:${MUTED};">
-        This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+        This link expires in 1 hour. If you didn't request this, you can safely ignore this email
+        and keep using your current password.
       </p>
     `,
   });

@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { getVisibleOwnerIds } from "@/lib/access";
+import { getVisibleStudentIds } from "@/lib/access";
 import type { SessionPayload } from "@/lib/session";
 
 export type Student = {
@@ -60,14 +60,14 @@ const STUDENT_SELECT = `
 `;
 
 export async function listVisibleStudents(session: SessionPayload): Promise<Student[]> {
-  const ownerIds = await getVisibleOwnerIds(session);
+  const studentIds = await getVisibleStudentIds(session);
 
-  if (ownerIds === null) {
+  if (studentIds === null) {
     return (await sql.query(`${STUDENT_SELECT} ORDER BY s.name`)) as Student[];
   }
 
-  return (await sql.query(`${STUDENT_SELECT} WHERE s.owner_id = ANY($1) ORDER BY s.name`, [
-    ownerIds,
+  return (await sql.query(`${STUDENT_SELECT} WHERE s.id = ANY($1) ORDER BY s.name`, [
+    studentIds,
   ])) as Student[];
 }
 

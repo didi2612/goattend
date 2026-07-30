@@ -3,18 +3,19 @@ import type { SessionPayload } from "@/lib/session";
 
 /**
  * Returns null if the session can see every student (superadmin), otherwise
- * the set of admin user ids whose students are visible: themselves, plus
- * anyone a superadmin has explicitly granted them access to.
+ * the set of student ids visible to them: students they own, plus any
+ * individual students a superadmin has explicitly granted them access to.
  */
-export async function getVisibleOwnerIds(session: SessionPayload): Promise<number[] | null> {
+export async function getVisibleStudentIds(session: SessionPayload): Promise<number[] | null> {
   if (session.role === "superadmin") return null;
 
-  const grants = (await sql`
-    SELECT target_admin_id FROM admin_access_grants WHERE grantee_admin_id = ${session.userId}
-  `) as { target_admin_id: number }[];
+  const rows = (await sql`
+    SELECT id FROM students WHERE owner_id = ${session.userId}
+    UNION
+    SELECT student_id AS id FROM student_access_grants WHERE grantee_admin_id = ${session.userId}
+  `) as { id: number }[];
 
-  const ownerIds = new Set<number>([session.userId, ...grants.map((g) => g.target_admin_id)]);
-  return [...ownerIds];
+  return rows.map((r) => r.id);
 }
 
 export function canManageStudent(session: SessionPayload, ownerId: number): boolean {

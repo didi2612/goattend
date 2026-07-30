@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const token = await createAuthToken(user.id, "invite");
 
     try {
-      await sendInviteEmail({ email: user.email, name: user.name, token });
+      await sendInviteEmail({ email: user.email, username: user.username, name: user.name, token });
     } catch (err) {
       return NextResponse.json(
         { ...user, emailError: err instanceof Error ? err.message : "Failed to send invite email" },

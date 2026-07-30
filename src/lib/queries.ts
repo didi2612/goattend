@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { getVisibleOwnerIds } from "@/lib/access";
+import { getVisibleStudentIds } from "@/lib/access";
 import type { SessionPayload } from "@/lib/session";
 
 export type AttendanceRecord = {
@@ -26,7 +26,7 @@ export async function getAttendanceLog(
   },
 ): Promise<{ records: AttendanceRecord[]; total: number }> {
   const { studentId, type, limit, offset } = params;
-  const ownerIds = await getVisibleOwnerIds(session);
+  const studentIds = await getVisibleStudentIds(session);
 
   const values: unknown[] = [];
   const conditions: string[] = [];
@@ -38,9 +38,9 @@ export async function getAttendanceLog(
     values.push(type);
     conditions.push(`a.type = $${values.length}`);
   }
-  if (ownerIds !== null) {
-    values.push(ownerIds);
-    conditions.push(`s.owner_id = ANY($${values.length})`);
+  if (studentIds !== null) {
+    values.push(studentIds);
+    conditions.push(`s.id = ANY($${values.length})`);
   }
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
@@ -77,20 +77,20 @@ export async function getAttendanceLog(
 }
 
 export async function getOverviewStats(session: SessionPayload) {
-  const ownerIds = await getVisibleOwnerIds(session);
-  const ownerFilter = ownerIds !== null ? { owner_id: ownerIds } : null;
+  const studentIds = await getVisibleStudentIds(session);
+  const filter = studentIds !== null ? { student_id: studentIds } : null;
 
   const totalStudentsResult =
-    ownerFilter === null
+    filter === null
       ? await sql`SELECT COUNT(*)::int AS count FROM students WHERE active = TRUE`
       : await sql.query(
-          `SELECT COUNT(*)::int AS count FROM students WHERE active = TRUE AND owner_id = ANY($1)`,
-          [ownerFilter.owner_id],
+          `SELECT COUNT(*)::int AS count FROM students WHERE active = TRUE AND id = ANY($1)`,
+          [filter.student_id],
         );
   const totalStudents = (totalStudentsResult as { count: number }[])[0].count;
 
   const todayCountResult =
-    ownerFilter === null
+    filter === null
       ? await sql`
           SELECT COUNT(*)::int AS count FROM attendance_log
           WHERE timestamp >= date_trunc('day', now() AT TIME ZONE 'Asia/Kuala_Lumpur') AT TIME ZONE 'Asia/Kuala_Lumpur'
@@ -98,15 +98,14 @@ export async function getOverviewStats(session: SessionPayload) {
       : await sql.query(
           `SELECT COUNT(*)::int AS count
            FROM attendance_log a
-           JOIN students s ON s.id = a.student_id
            WHERE a.timestamp >= date_trunc('day', now() AT TIME ZONE 'Asia/Kuala_Lumpur') AT TIME ZONE 'Asia/Kuala_Lumpur'
-             AND s.owner_id = ANY($1)`,
-          [ownerFilter.owner_id],
+             AND a.student_id = ANY($1)`,
+          [filter.student_id],
         );
   const todayCount = (todayCountResult as { count: number }[])[0].count;
 
   const clockedInResult =
-    ownerFilter === null
+    filter === null
       ? await sql`
           SELECT COUNT(*)::int AS count FROM (
             SELECT DISTINCT ON (a.student_id) a.student_id, a.type
@@ -122,16 +121,16 @@ export async function getOverviewStats(session: SessionPayload) {
              SELECT DISTINCT ON (a.student_id) a.student_id, a.type
              FROM attendance_log a
              JOIN students s ON s.id = a.student_id
-             WHERE s.active = TRUE AND s.owner_id = ANY($1)
+             WHERE s.active = TRUE AND s.id = ANY($1)
              ORDER BY a.student_id, a.timestamp DESC
            ) last_event
            WHERE last_event.type = 'Clock In'`,
-          [ownerFilter.owner_id],
+          [filter.student_id],
         );
   const clockedInNow = (clockedInResult as { count: number }[])[0].count;
 
   const recentResult =
-    ownerFilter === null
+    filter === null
       ? await sql`
           SELECT a.id, a.student_id, s.name AS student_name, a.type, a.image_url,
                  a.latitude, a.longitude, a.timestamp, a.source
@@ -145,10 +144,10 @@ export async function getOverviewStats(session: SessionPayload) {
                   a.latitude, a.longitude, a.timestamp, a.source
            FROM attendance_log a
            JOIN students s ON s.id = a.student_id
-           WHERE s.owner_id = ANY($1)
+           WHERE s.id = ANY($1)
            ORDER BY a.timestamp DESC
            LIMIT 5`,
-          [ownerFilter.owner_id],
+          [filter.student_id],
         );
 
   return {
@@ -167,14 +166,13 @@ export type DailyHoursPoint = { date: string; avgHours: number; studentsCount: n
  * (it doesn't try to pair up multiple in/out cycles in one day) but matches
  * how a normal single-shift day is actually recorded here.
  */
-const HOURS_CTE = (ownerIds: number[] | null) => `
+const HOURS_CTE = (studentIds: number[] | null) => `
   WITH events AS (
     SELECT a.student_id, (a.timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')::date AS day,
            a.type, a.timestamp
     FROM attendance_log a
-    JOIN students s ON s.id = a.student_id
     WHERE a.timestamp >= (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - ($1::int - 1)
-      ${ownerIds !== null ? "AND s.owner_id = ANY($2)" : ""}
+      ${studentIds !== null ? "AND a.student_id = ANY($2)" : ""}
   ),
   daily AS (
     SELECT student_id, day,
@@ -194,13 +192,13 @@ export async function getDailyHoursTrend(
   session: SessionPayload,
   days = 14,
 ): Promise<DailyHoursPoint[]> {
-  const ownerIds = await getVisibleOwnerIds(session);
+  const studentIds = await getVisibleStudentIds(session);
 
   // generate_series builds the full day range (including zero-record days) in
   // Malaysia local time, then left-joins computed durations onto it, so the
   // series and the grouping use the same calendar-day boundary.
   const query = `
-    ${HOURS_CTE(ownerIds)},
+    ${HOURS_CTE(studentIds)},
     days AS (
       SELECT generate_series(
         (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - ($1::int - 1),
@@ -218,7 +216,7 @@ export async function getDailyHoursTrend(
     ORDER BY days.day
   `;
 
-  const values: unknown[] = ownerIds !== null ? [days, ownerIds] : [days];
+  const values: unknown[] = studentIds !== null ? [days, studentIds] : [days];
   const rows = (await sql.query(query, values)) as {
     day: string;
     avg_hours: string;
@@ -244,14 +242,14 @@ export async function getTopStudentsByHours(
   days = 14,
   limit = 5,
 ): Promise<StudentHoursSummary[]> {
-  const ownerIds = await getVisibleOwnerIds(session);
+  const studentIds = await getVisibleStudentIds(session);
 
-  const values: unknown[] = ownerIds !== null ? [days, ownerIds] : [days];
+  const values: unknown[] = studentIds !== null ? [days, studentIds] : [days];
   const limitIdx = values.length + 1;
   values.push(limit);
 
   const query = `
-    ${HOURS_CTE(ownerIds)}
+    ${HOURS_CTE(studentIds)}
     SELECT s.id, s.name, SUM(durations.hours) AS total_hours, COUNT(*)::int AS days_worked
     FROM durations
     JOIN students s ON s.id = durations.student_id

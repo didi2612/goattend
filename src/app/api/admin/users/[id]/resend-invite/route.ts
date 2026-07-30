@@ -7,8 +7,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const [user] = (await sql`
-    SELECT id, email, name FROM users WHERE id = ${Number(id)}
-  `) as { id: number; email: string; name: string | null }[];
+    SELECT id, username, email, name FROM users WHERE id = ${Number(id)}
+  `) as { id: number; username: string; email: string; name: string | null }[];
 
   if (!user) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -17,7 +17,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const token = await createAuthToken(user.id, "invite");
 
   try {
-    await sendInviteEmail({ email: user.email, name: user.name, token });
+    await sendInviteEmail({ email: user.email, username: user.username, name: user.name, token });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to send invite email" },

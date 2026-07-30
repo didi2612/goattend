@@ -13,14 +13,15 @@ export async function POST(req: NextRequest) {
   if (!email) return genericResponse;
 
   const [user] = (await sql`
-    SELECT id FROM users WHERE email = ${email.toLowerCase()} AND active = TRUE AND password_hash IS NOT NULL
-  `) as { id: number }[];
+    SELECT id, username FROM users
+    WHERE email = ${email.toLowerCase()} AND active = TRUE AND password_hash IS NOT NULL
+  `) as { id: number; username: string }[];
 
   if (!user) return genericResponse;
 
   const token = await createAuthToken(user.id, "reset");
   try {
-    await sendResetEmail({ email: email.toLowerCase(), token });
+    await sendResetEmail({ email: email.toLowerCase(), username: user.username, token });
   } catch (err) {
     console.error("Failed to send reset email:", err);
   }

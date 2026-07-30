@@ -13,15 +13,16 @@ type UserRow = {
 };
 
 export async function POST(req: NextRequest) {
-  const { username, password } = (await req.json()) as { username?: string; password?: string };
+  const { identifier, password } = (await req.json()) as { identifier?: string; password?: string };
 
-  if (!username || !password) {
+  if (!identifier || !password) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  const normalized = identifier.trim().toLowerCase();
   const [user] = (await sql`
     SELECT id, username, email, password_hash, role, active FROM users
-    WHERE username = ${username.toLowerCase()}
+    WHERE username = ${normalized} OR email = ${normalized}
   `) as UserRow[];
 
   if (!user || !user.active || !user.password_hash) {
