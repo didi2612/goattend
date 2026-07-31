@@ -15,6 +15,7 @@ import {
 import { getServerSession } from "@/lib/session";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
+import { RefreshButton } from "@/components/RefreshButton";
 import { LogoBadge } from "@/components/LogoBadge";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,7 @@ export default async function LandingPage() {
           <span className="text-sm font-bold tracking-tight text-foreground">AZP : GO ATTEND</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
+          <RefreshButton />
           <FullscreenToggle />
           <ThemeToggle />
           <Link

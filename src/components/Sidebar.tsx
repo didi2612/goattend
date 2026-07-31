@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
+import { RefreshButton } from "@/components/RefreshButton";
 import { LogoBadge } from "@/components/LogoBadge";
 
 type NavItem = { href: string; label: string; icon: React.ComponentType<{ size?: number }> };
@@ -81,6 +82,7 @@ export function Sidebar({
             <p className="text-xs capitalize text-muted">{role}</p>
           </div>
           <div className="flex items-center gap-2">
+            <RefreshButton />
             <FullscreenToggle />
             <ThemeToggle />
           </div>
