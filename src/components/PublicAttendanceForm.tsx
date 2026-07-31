@@ -50,6 +50,7 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
   const [error, setError] = useState<string | null>(null);
   const [resultType, setResultType] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<"Clock In" | "Clock Out">(nextType);
+  const [cameraStatus, setCameraStatus] = useState<"loading" | "ready" | "error">("loading");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,8 +71,12 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
         }
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
+        setCameraStatus("ready");
       })
-      .catch(() => setError("Camera access denied. Please allow camera access and reload the page."));
+      .catch(() => {
+        setCameraStatus("error");
+        setError("Camera access denied. Please allow camera access and reload the page.");
+      });
 
     return () => {
       cancelled = true;
@@ -81,6 +86,7 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
   }, [step, photoDataUrl]);
 
   function snap() {
+    if (cameraStatus !== "ready") return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
@@ -97,6 +103,7 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
   function retake() {
     setPhotoDataUrl(null);
     setError(null);
+    setCameraStatus("loading");
   }
 
   async function handleSubmit() {
@@ -215,10 +222,11 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
               ) : (
                 <button
                   onClick={snap}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-accent-foreground transition hover:opacity-90"
+                  disabled={cameraStatus !== "ready"}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
                 >
                   <Camera size={18} />
-                  Snap Photo
+                  {cameraStatus === "error" ? "Camera unavailable" : cameraStatus === "loading" ? "Starting camera..." : "Snap Photo"}
                 </button>
               )}
             </div>
