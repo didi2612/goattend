@@ -18,6 +18,9 @@ import { AddStudentModal } from "@/components/AddStudentModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DropdownMenu } from "@/components/DropdownMenu";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
+
+const PAGE_SIZE = 7;
 
 type Student = {
   id: number;
@@ -65,6 +68,7 @@ export default function StudentsPage() {
   const [recordingFor, setRecordingFor] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
+  const [page, setPage] = useState(1);
 
   async function load() {
     setLoading(true);
@@ -115,6 +119,10 @@ export default function StudentsPage() {
     return me?.role === "superadmin" || me?.userId === student.owner_id;
   }
 
+  const pageCount = Math.max(1, Math.ceil(students.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedStudents = students.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
     <div>
       <PageHeader
@@ -143,7 +151,7 @@ export default function StudentsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {students.map((s) => {
+            {pagedStudents.map((s) => {
               const isClockedIn = s.last_type === "Clock In";
               return (
                 <tr key={s.id} className="transition hover:bg-surface-hover">
@@ -218,6 +226,8 @@ export default function StudentsPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
 
       {recordingFor && (
         <ManualAttendanceModal

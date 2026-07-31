@@ -8,6 +8,9 @@ import { InviteUserModal } from "@/components/InviteUserModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DropdownMenu, type MenuItem } from "@/components/DropdownMenu";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
+
+const PAGE_SIZE = 7;
 
 type User = {
   id: number;
@@ -31,6 +34,7 @@ export default function UsersPage() {
   const [managingAccessFor, setManagingAccessFor] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [page, setPage] = useState(1);
 
   async function load() {
     setLoading(true);
@@ -75,6 +79,10 @@ export default function UsersPage() {
     }
   }
 
+  const pageCount = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedUsers = users.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
     <div>
       <PageHeader
@@ -110,7 +118,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {users.map((u) => (
+            {pagedUsers.map((u) => (
               <tr key={u.id} className="transition hover:bg-surface-hover">
                 <td className="px-4 py-3 font-medium text-foreground">{u.username}</td>
                 <td className="px-4 py-3 text-muted">{u.email}</td>
@@ -192,6 +200,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
 
       {inviting && <InviteUserModal onClose={() => setInviting(false)} onSaved={load} />}
 
