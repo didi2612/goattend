@@ -40,7 +40,7 @@ function LoginForm() {
         return;
       }
 
-      router.push(searchParams.get("from") ?? "/");
+      router.push(searchParams.get("from") ?? "/overview");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

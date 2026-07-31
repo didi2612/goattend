@@ -49,7 +49,7 @@ function SetPasswordForm() {
         return;
       }
 
-      router.push("/");
+      router.push("/overview");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

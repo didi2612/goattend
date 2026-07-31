@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,6 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AZP : GO ATTEND",
   description: "Monitor student clock-in/out attendance for AZP.",
+  appleWebApp: {
+    capable: true,
+    title: "GO ATTEND",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
 };
 
 const THEME_INIT_SCRIPT = `
@@ -41,7 +51,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="flex min-h-full flex-col bg-background text-foreground">{children}</body>
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }

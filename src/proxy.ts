@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 const PUBLIC_PATHS = [
+  "/",
   "/login",
   "/forgot-password",
   "/set-password",
@@ -41,12 +42,14 @@ export async function proxy(req: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/overview", req.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|apple-icon.png|azp-logo.png).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon.png|azp-logo.png|manifest.webmanifest|sw.js|icon-192.png|icon-512.png|icon-maskable-512.png).*)",
+  ],
 };

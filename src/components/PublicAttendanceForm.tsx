@@ -13,6 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { LogoBadge } from "@/components/LogoBadge";
 
 type Props = {
@@ -151,7 +152,8 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
 
   return (
     <div className="relative min-h-screen bg-background p-5">
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-4 top-4 flex items-center gap-2">
+        <FullscreenToggle />
         <ThemeToggle />
       </div>
 

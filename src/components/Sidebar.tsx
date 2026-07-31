@@ -13,12 +13,13 @@ import {
   X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { LogoBadge } from "@/components/LogoBadge";
 
 type NavItem = { href: string; label: string; icon: React.ComponentType<{ size?: number }> };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/attendance", label: "Attendance Log", icon: ClipboardList },
   { href: "/students", label: "Students", icon: Users },
 ];
@@ -79,7 +80,10 @@ export function Sidebar({
             <p className="truncate text-sm font-medium text-foreground">{username}</p>
             <p className="text-xs capitalize text-muted">{role}</p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <FullscreenToggle />
+            <ThemeToggle />
+          </div>
         </div>
         <button
           onClick={handleLogout}
