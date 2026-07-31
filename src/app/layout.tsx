@@ -28,12 +28,15 @@ export const viewport: Viewport = {
   themeColor: "#4f46e5",
 };
 
+// The server always renders the "dark" class (see className below), so
+// dark is the default with zero dependency on this script running first.
+// This only ever removes it, for the explicit opt-out case.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    var stored = localStorage.getItem("theme-v2");
-    var theme = stored || "dark";
-    if (theme === "dark") document.documentElement.classList.add("dark");
+    if (localStorage.getItem("theme-v2") === "light") {
+      document.documentElement.classList.remove("dark");
+    }
   } catch (e) {}
 })();
 `;
@@ -46,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
