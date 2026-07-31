@@ -49,12 +49,13 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultType, setResultType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<"Clock In" | "Clock Out">(nextType);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const isClockIn = nextType === "Clock In";
+  const isClockIn = selectedType === "Clock In";
 
   useEffect(() => {
     if (step !== "camera" || photoDataUrl) return;
@@ -114,6 +115,7 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
               imageData: photoDataUrl,
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
+              type: selectedType,
             }),
           });
 
@@ -233,6 +235,37 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
                 />
               )}
 
+              <div className="mb-4 flex gap-2 rounded-xl border border-border p-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedType("Clock In")}
+                  disabled={submitting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-60"
+                  style={
+                    selectedType === "Clock In"
+                      ? { background: "var(--chart-blue-soft)", color: "var(--chart-blue)" }
+                      : undefined
+                  }
+                >
+                  <LogIn size={16} />
+                  Clock In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedType("Clock Out")}
+                  disabled={submitting}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-60"
+                  style={
+                    selectedType === "Clock Out"
+                      ? { background: "var(--chart-orange-soft)", color: "var(--chart-orange)" }
+                      : undefined
+                  }
+                >
+                  <LogOut size={16} />
+                  Clock Out
+                </button>
+              </div>
+
               <div
                 className="mb-4 flex items-center justify-center gap-2 rounded-xl p-4 text-center"
                 style={{
@@ -241,8 +274,16 @@ export function PublicAttendanceForm({ token, studentName, nextType, hadMissedCl
                 }}
               >
                 {isClockIn ? <LogIn size={20} /> : <LogOut size={20} />}
-                <p className="font-semibold">Confirm {nextType}</p>
+                <p className="font-semibold">Confirm {selectedType}</p>
               </div>
+
+              {selectedType !== nextType && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-600">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  Your last record suggests {nextType}. Make sure {selectedType} is correct before
+                  submitting.
+                </div>
+              )}
 
               {locationStatus === "error" && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">

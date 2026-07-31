@@ -21,17 +21,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     imageData?: string;
     latitude?: number;
     longitude?: number;
+    type?: string;
   };
 
-  const { imageData, latitude, longitude } = body;
+  const { imageData, latitude, longitude, type } = body;
   if (!imageData || latitude == null || longitude == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+  if (type !== "Clock In" && type !== "Clock Out") {
+    return NextResponse.json({ error: "Invalid attendance type" }, { status: 400 });
+  }
 
-  // The type is always derived server-side from the student's last record,
-  // never trusted from the client, so a submission can't be spoofed as the
-  // wrong clock event.
-  const { type, staleClockInId } = await getNextAttendanceType(student.id);
+  // staleClockInId flags a forgotten clock-out from a previous day regardless
+  // of what the student picks today; the type itself is now the student's choice.
+  const { staleClockInId } = await getNextAttendanceType(student.id);
 
   if (staleClockInId != null) {
     // A previous Clock In was never followed by a Clock Out (student forgot).
