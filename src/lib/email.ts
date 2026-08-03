@@ -163,20 +163,48 @@ export async function sendResetEmail(params: { email: string; username: string; 
   if (error) throw new Error(`Failed to send reset email: ${error.message}`);
 }
 
-export async function sendMissedClockOutEmail(params: { email: string; name: string }) {
-  const { email, name } = params;
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export async function sendFlaggedAttendanceAlert(params: {
+  email: string;
+  ownerName: string;
+  studentNames: string[];
+}) {
+  const { email, ownerName, studentNames } = params;
+
+  const listHtml = studentNames
+    .map(
+      (name) => `
+        <tr>
+          <td style="padding:10px 14px; font-size:14px; font-weight:600; color:${INK}; border-bottom:1px solid ${BORDER};">
+            ${escapeHtml(name)}
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
 
   const html = emailShell({
-    preheader: `Reminder: you haven't clocked out yet today.`,
-    heading: "You haven't clocked out yet",
+    preheader: `${studentNames.length} student${studentNames.length === 1 ? " hasn't" : "s haven't"} clocked out yet today.`,
+    heading: "FLAGGED ATTENDANCE ALERT",
     bodyHtml: `
       <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:${INK};">
-        Hi ${name},
+        Hi ${ownerName},
       </p>
-      <p style="margin:0 0 0; font-size:14px; line-height:1.6; color:${INK};">
-        Our records show you clocked in today but haven't clocked out yet. If you're still on
-        site, please remember to clock out before you leave. If this was a mistake, let your
-        supervisor know.
+      <p style="margin:0 0 16px; font-size:14px; line-height:1.6; color:${INK};">
+        The following student${studentNames.length === 1 ? "" : "s"} clocked in today but ${studentNames.length === 1 ? "hasn't" : "haven't"} clocked out yet as of 10pm:
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px; border:1px solid ${BORDER}; border-radius:10px; overflow:hidden;">
+        ${listHtml}
+      </table>
+      <p style="margin:0; font-size:12px; color:${MUTED};">
+        You're receiving this because you supervise the student${studentNames.length === 1 ? "" : "s"} listed above.
       </p>
     `,
   });
@@ -184,9 +212,9 @@ export async function sendMissedClockOutEmail(params: { email: string; name: str
   const { error } = await getResend().emails.send({
     from: process.env.FROM_EMAIL!,
     to: email,
-    subject: "Reminder: you haven't clocked out yet",
+    subject: "FLAGGED ATTENDANCE ALERT",
     html,
   });
 
-  if (error) throw new Error(`Failed to send missed clock-out email: ${error.message}`);
+  if (error) throw new Error(`Failed to send flagged attendance alert: ${error.message}`);
 }

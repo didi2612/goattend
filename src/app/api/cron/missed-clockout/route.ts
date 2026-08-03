@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getStudentsMissingClockOutToday } from "@/lib/students";
-import { sendMissedClockOutEmail } from "@/lib/email";
+import { sendFlaggedAttendanceAlert } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -9,24 +9,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const students = await getStudentsMissingClockOutToday();
+  const rows = await getStudentsMissingClockOutToday();
+
+  const byOwner = new Map<
+    number,
+    { ownerName: string; ownerEmail: string; studentNames: string[]; attendanceLogIds: number[] }
+  >();
+  for (const row of rows) {
+    const entry = byOwner.get(row.ownerId) ?? {
+      ownerName: row.ownerName,
+      ownerEmail: row.ownerEmail,
+      studentNames: [],
+      attendanceLogIds: [],
+    };
+    entry.studentNames.push(row.studentName);
+    entry.attendanceLogIds.push(row.attendanceLogId);
+    byOwner.set(row.ownerId, entry);
+  }
 
   let sent = 0;
   let failed = 0;
-  for (const student of students) {
+  for (const { ownerName, ownerEmail, studentNames, attendanceLogIds } of byOwner.values()) {
     try {
-      await sendMissedClockOutEmail({ email: student.email, name: student.name });
+      await sendFlaggedAttendanceAlert({ email: ownerEmail, ownerName, studentNames });
       await sql`
         UPDATE attendance_log
-        SET flagged = TRUE, flag_reason = 'Missing clock-out - notified by email at 10pm.'
-        WHERE id = ${student.attendanceLogId}
+        SET flagged = TRUE, flag_reason = 'Missing clock-out - supervisor notified by email at 10pm.'
+        WHERE id = ANY(${attendanceLogIds})
       `;
       sent++;
     } catch (err) {
       failed++;
-      console.error(`Failed to notify student ${student.id} of missed clock-out:`, err);
+      console.error(`Failed to send flagged attendance alert to owner ${ownerEmail}:`, err);
     }
   }
 
-  return NextResponse.json({ checked: students.length, sent, failed });
+  return NextResponse.json({ studentsFlagged: rows.length, supervisorsNotified: sent, failed });
 }

@@ -25,7 +25,6 @@ const PAGE_SIZE = 7;
 type Student = {
   id: number;
   name: string;
-  email: string | null;
   owner_id: number;
   owner_name: string;
   attendance_token: string;
@@ -156,10 +155,7 @@ export default function StudentsPage() {
               const isClockedIn = s.last_type === "Clock In";
               return (
                 <tr key={s.id} className="transition hover:bg-surface-hover">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-foreground">{s.name}</p>
-                    {s.email && <p className="text-xs text-muted">{s.email}</p>}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-foreground">{s.name}</td>
                   <td className="px-4 py-3 text-muted">{s.owner_name}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
@@ -246,7 +242,6 @@ export default function StudentsPage() {
         <EditStudentModal
           studentId={editingStudent.id}
           currentName={editingStudent.name}
-          currentEmail={editingStudent.email}
           onClose={() => setEditingStudent(null)}
           onSaved={load}
         />

@@ -8,13 +8,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { active, name, email } = (await req.json()) as {
-    active?: boolean;
-    name?: string;
-    email?: string;
-  };
+  const { active, name } = (await req.json()) as { active?: boolean; name?: string };
 
-  if (active === undefined && name === undefined && email === undefined) {
+  if (active === undefined && name === undefined) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
   if (name !== undefined && !name.trim()) {
@@ -35,10 +31,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const [updated] = await sql`
     UPDATE students SET
       active = COALESCE(${active ?? null}, active),
-      name = COALESCE(${name?.trim() ?? null}, name),
-      email = CASE WHEN ${email !== undefined} THEN ${email?.trim() || null} ELSE email END
+      name = COALESCE(${name?.trim() ?? null}, name)
     WHERE id = ${Number(id)}
-    RETURNING id, name, email, owner_id, attendance_token, active, created_at
+    RETURNING id, name, owner_id, attendance_token, active, created_at
   `;
   return NextResponse.json(updated);
 }
