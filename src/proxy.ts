@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/api/auth/forgot-password",
   "/api/auth/set-password",
   "/api/attend",
+  "/api/cron",
 ];
 
 const SUPERADMIN_PATHS = ["/users", "/api/admin/users"];

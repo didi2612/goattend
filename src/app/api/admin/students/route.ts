@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name } = (await req.json()) as { name?: string };
+  const { name, email } = (await req.json()) as { name?: string; email?: string };
   if (!name || !name.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  const student = await createStudent(name.trim(), session.userId);
+  const student = await createStudent(name.trim(), session.userId, email);
   return NextResponse.json(student);
 }

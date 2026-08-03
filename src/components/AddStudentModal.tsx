@@ -10,6 +10,7 @@ export function AddStudentModal({
   onSaved: () => void;
 }) {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export function AddStudentModal({
       const res = await fetch("/api/admin/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -53,6 +54,17 @@ export function AddStudentModal({
           onKeyDown={(e) => e.key === "Enter" && save()}
           className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           autoFocus
+        />
+
+        <label className="mb-1 block text-sm font-medium text-foreground">
+          Email <span className="font-normal text-muted">(optional, for missed clock-out alerts)</span>
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
 
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}

@@ -162,3 +162,31 @@ export async function sendResetEmail(params: { email: string; username: string; 
 
   if (error) throw new Error(`Failed to send reset email: ${error.message}`);
 }
+
+export async function sendMissedClockOutEmail(params: { email: string; name: string }) {
+  const { email, name } = params;
+
+  const html = emailShell({
+    preheader: `Reminder: you haven't clocked out yet today.`,
+    heading: "You haven't clocked out yet",
+    bodyHtml: `
+      <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:${INK};">
+        Hi ${name},
+      </p>
+      <p style="margin:0 0 0; font-size:14px; line-height:1.6; color:${INK};">
+        Our records show you clocked in today but haven't clocked out yet. If you're still on
+        site, please remember to clock out before you leave. If this was a mistake, let your
+        supervisor know.
+      </p>
+    `,
+  });
+
+  const { error } = await getResend().emails.send({
+    from: process.env.FROM_EMAIL!,
+    to: email,
+    subject: "Reminder: you haven't clocked out yet",
+    html,
+  });
+
+  if (error) throw new Error(`Failed to send missed clock-out email: ${error.message}`);
+}

@@ -5,6 +5,7 @@ import type { SessionPayload } from "@/lib/session";
 export type Student = {
   id: number;
   name: string;
+  email: string | null;
   owner_id: number;
   owner_name: string;
   attendance_token: string;
@@ -46,7 +47,7 @@ export async function generateAttendanceSlug(name: string): Promise<string> {
 }
 
 const STUDENT_SELECT = `
-  SELECT s.id, s.name, s.owner_id, COALESCE(u.name, u.email) AS owner_name,
+  SELECT s.id, s.name, s.email, s.owner_id, COALESCE(u.name, u.email) AS owner_name,
          s.attendance_token, s.active, s.created_at,
          last_event.type AS last_type
   FROM students s
@@ -106,12 +107,16 @@ export async function getNextAttendanceType(studentId: number): Promise<NextAtte
   return { type: "Clock In", staleClockInId: lastRecord.id };
 }
 
-export async function createStudent(name: string, ownerId: number): Promise<Student> {
+export async function createStudent(
+  name: string,
+  ownerId: number,
+  email?: string | null,
+): Promise<Student> {
   const token = await generateAttendanceSlug(name);
   const [student] = (await sql`
-    INSERT INTO students (name, owner_id, attendance_token)
-    VALUES (${name}, ${ownerId}, ${token})
-    RETURNING id, name, owner_id, attendance_token, active, created_at
+    INSERT INTO students (name, email, owner_id, attendance_token)
+    VALUES (${name}, ${email?.trim() || null}, ${ownerId}, ${token})
+    RETURNING id, name, email, owner_id, attendance_token, active, created_at
   `) as Omit<Student, "owner_name" | "last_type">[];
 
   const [owner] = (await sql`SELECT name, email FROM users WHERE id = ${ownerId}`) as {
@@ -120,4 +125,41 @@ export async function createStudent(name: string, ownerId: number): Promise<Stud
   }[];
 
   return { ...student, owner_name: owner.name ?? owner.email, last_type: null };
+}
+
+export type MissedClockOutStudent = { id: number; name: string; email: string };
+
+/**
+ * Active students whose latest attendance_log record for today (Asia/Kuala_Lumpur)
+ * is a Clock In with no matching Clock Out yet, and who have an email on file.
+ * Used by the 10pm cron check - callers should flag each returned record's
+ * attendance_log row after emailing so a retry doesn't send a duplicate.
+ */
+export async function getStudentsMissingClockOutToday(): Promise<
+  (MissedClockOutStudent & { attendanceLogId: number })[]
+> {
+  const rows = await sql`
+    SELECT s.id, s.name, s.email, last_event.id AS attendance_log_id
+    FROM students s
+    JOIN LATERAL (
+      SELECT id, type, flagged,
+        (timestamp AT TIME ZONE 'Asia/Kuala_Lumpur')::date = (now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date AS is_today
+      FROM attendance_log a
+      WHERE a.student_id = s.id
+      ORDER BY a.timestamp DESC
+      LIMIT 1
+    ) last_event ON true
+    WHERE s.active = TRUE
+      AND s.email IS NOT NULL
+      AND last_event.type = 'Clock In'
+      AND last_event.is_today = TRUE
+      AND last_event.flagged = FALSE
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    attendanceLogId: r.attendance_log_id,
+  })) as (MissedClockOutStudent & { attendanceLogId: number })[];
 }
